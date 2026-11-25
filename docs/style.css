@@ -374,3 +374,22 @@ header,#stats,#mission,#radar,#prompt,#toast,footer{pointer-events:none}
 #retry-load {min-width:0;padding:4px 8px;font-size:10px;letter-spacing:.2px}
 #intro .garage-label {margin-top:15px}
 @media(max-width:800px){#intro .intro-card{width:min(92vw,400px)}}
+
+/* The postcard shares the menu's existing Start-ready state. */
+#intro {isolation:isolate}
+#loading-postcard {
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:72% 15%;
+  pointer-events:none;
+  mask-image:linear-gradient(90deg, transparent, #0002 24%, #000 53%);
+  transition:opacity 200ms ease-out;
+}
+#intro:has(#start:enabled) #loading-postcard {opacity:0}
+@media (prefers-reduced-motion:reduce) {
+  #loading-postcard {transition:none}
+}
