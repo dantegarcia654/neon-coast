@@ -1,3 +1,4 @@
+import {installOceanStunts} from './ocean-stunts.js';
 import {createFartaculous} from './fartaculous.js';
 import {getawayStart} from './getaway-spawn.js';
 import {sweptContact} from './traffic-contact.js';
@@ -20,6 +21,7 @@ import { createWorld } from "./visuals.js";
 import { installCharacterSelector } from "./selector.js";
 const $ = (s) => document.querySelector(s);
 const world = createWorld($("#world"));
+const ocean=installOceanStunts(world,{notify:toast});
 const {
   scene,
   renderer,
@@ -251,7 +253,7 @@ for(const b of colliders){
 }
 function blocked(x, z, r = 0.7) {
   return (
-    (outsideMap(x,z,r) && !atTerminal(x,z,r) && !atPier(x,z,r)) ||
+    (outsideMap(x,z,r) && !atTerminal(x,z,r) && !atPier(x,z,r) && !ocean.contains(x,z,r)) ||
     (collisionCells.get(Math.floor(x/16)+','+Math.floor(z/16)) || []).some(
       (b) => Math.abs(x - b.x) < b.w + r && Math.abs(z - b.z) < b.d + r && !(b.type==="water"&&world.isWaterWalkway(x,z,r)),
     )
@@ -288,6 +290,7 @@ function canEnter(c){
 }
 function interact() {
   if (!started || paused || bust || encounters.busy) return;
+  if(ocean.active){toast("MAGNETIC TRACK · EXIT AT CACTUS CROSSING");return}
   if (car) {
     if (Math.abs(car.speed) > 5) {
       toast("SLOW DOWN TO GET OUT");
@@ -352,6 +355,7 @@ function interact() {
 }
 function recover() {
   if(encounters.busy)return;
+  if(ocean.recover(car)){toast("BACK AT THE OCEAN FORK · 1/2/3 CHOOSE A TRACK");return}
   if (wanted) {
     toast("LOSE THE POLICE BEFORE RECOVERING");
     return;
@@ -402,6 +406,8 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
   keys[e.code] = true;
   if (e.repeat) return;
+  if(ocean.active && /^Digit[123]$/.test(e.code)){ocean.choose(Number(e.code.slice(-1))-1);return}
+  if(ocean.active && ["KeyF","KeyV"].includes(e.code)){toast("STUNT CHASE CAMERA ACTIVE");return}
   if (e.code === "KeyF" && car && started && !paused) {
     toast(followCamera.toggleInterior() ? "DRIVER SEAT" : "EXTERIOR VIEW");
   }
@@ -430,6 +436,7 @@ addEventListener("blur", () => {
 });
 const departure = $("#departure");
 departure.add(new Option('Hot-dog corner','Hot-dog corner'));
+departure.add(new Option('Ocean stunt road','Ocean stunt road'));
 departure.add(new Option('East Pier','East Pier'));
 for(const place of trailheads)departure.add(new Option(place.name,place.name));
 function craftHelp(c){
@@ -502,7 +509,7 @@ function endRun(title){
 }
 function resetSession(toMenu){
   ++streetSession;streetLife?.stop();
-  monsters.stop();
+  monsters.stop();ocean.reset();
   bust=0;paused=false;started=!toMenu;teachWeapons=waitingCruiser=false;getawayTime=0;clearInput();
   if(toMenu)++backgroundVersion;
   footPatrol.reset();assault.reset();encounters.reset();assaultCount=0;lastAssault=null;
@@ -528,6 +535,7 @@ function resetSession(toMenu){
 }
 $("#start").onclick = () => {
   if(!starterReady || started || !world.characters.getState().ready)return;
+  if(departure.value==="Ocean stunt road"&&specialSelected()){toast("CHOOSE A ROAD CAR FOR THE OCEAN RUN");return}
   document.body.classList.remove("menu-open");
   sessionHomes=cars.filter(c=>!c.spec.special).map(c=>[c,{x:c.x,z:c.z,a:c.a,speed:c.speed,traffic:c.traffic,health:100}]);
   started = true;
@@ -563,7 +571,13 @@ $("#start").onclick = () => {
     }
     heat(1);toast("ONE STAR · DISPATCH ALERTED");
   }
-  monsters.start(car||p,$("#monster-encounter").checked);
+  if(playMode==="roam"&&departure.value==="Ocean stunt road"){
+    car=tourCar=world.vehicleModels.starter;person.visible=false;car.traffic=false;car.health=100;
+    wanted=0;ocean.start(car);p.x=car.x;p.z=car.z;
+    $("#objective").textContent="Find Cactus Crossing.";
+    $("#detail").textContent="W accelerate · S brake · A/D lane · 1/2/3 choose a track · R retry";
+  }
+  monsters.start(car||p,$("#monster-encounter").checked&&!ocean.active);
   performance.mark("neon-session-start");
   startStreetLife();
   streamRoster();
@@ -641,6 +655,7 @@ function drawMap(x, z, a) {
   map.fillRect(tx(214), tz(-177), 1000, 355*sc);
   map.fillStyle="#b9a480";map.fillRect(tx(177.5),tz(-177),36.5*sc,355*sc);
   if(z< -28)drawCountryside(map,tx,tz,sc);
+  ocean.drawMap(map,tx,tz,sc);
   for(const f of world.mapFeatures){map.fillStyle=f.type==='water'||f.type==='pool'?'#448d94':f.type==='bridge'?'#a3a79a':f.type==='dock'?'#ad9373':'#3b6b64';map.fillRect(tx(f.x-f.w/2),tz(f.z-f.d/2),f.w*sc,f.d*sc)}
   map.fillStyle="#c8a477";map.fillRect(tx(174),tz(-2.4),73*sc,4.8*sc);
   for (const c of cars) {
@@ -728,13 +743,15 @@ function tick(now) {
       }
     }
     const oldX=target.x,oldZ=target.z,oldHeading=target.a;
+    const wasStunting=ocean.active,stuntDriving=ocean.update(car,dt,keys);
+    if(wasStunting&&!ocean.active&&car)followCamera.align(car);
     monsters.update(dt,target,Boolean(car));
     encounters.step(dt,elapsed,car,!!keys.Space&&!wheel.armed);
     if(car)decayImpact(car,dt);
     if(car?.spec.special){
       transport.update(car,dt,keys,elapsed,moveRoadVehicle);
       if(car.health<=0){endRun("RIDE WRECKED.")}
-    }else if (car) {
+    }else if (car && !stuntDriving) {
       const accel =
         (keys.KeyW || keys.ArrowUp ? 1 : 0) -
         (keys.KeyS || keys.ArrowDown ? 1 : 0);
@@ -765,7 +782,7 @@ function tick(now) {
       if (car.health <= 0) {
         endRun("RIDE WRECKED.");
       }
-    } else if(!encounters.busy) {
+    } else if(!car && !encounters.busy) {
       let x =
           (keys.KeyD || keys.ArrowRight ? 1 : 0) -
           (keys.KeyA || keys.ArrowLeft ? 1 : 0),
@@ -784,7 +801,7 @@ function tick(now) {
         legs[1].rotation.x = -legs[0].rotation.x;
       } else legs.forEach((l) => (l.rotation.x = 0));
     }
-    const land=!transport.flight(target)&&target.spec?.kind!=='boat';
+    const land=!car?.stunt&&!transport.flight(target)&&target.spec?.kind!=='boat';
     if(!wanted||!land){blocks.reset();airWatch.reset()}
     if(car && land){
       const radius=car.spec.kind==='scooter'?.5:1.08;
@@ -1012,7 +1029,7 @@ function tick(now) {
   if (started) {
     const sprinting = !car && (keys.ShiftLeft || keys.ShiftRight) &&
       (keys.KeyA || keys.KeyD || keys.KeyW || keys.KeyS || keys.ArrowLeft || keys.ArrowRight || keys.ArrowUp || keys.ArrowDown);
-    followCamera.update(dt, car || p, Boolean(car), sprinting, pointerId !== null, keys.KeyC, weapons.framingMelee || encounters.guarding);
+    if(!ocean.active)followCamera.update(dt, car || p, Boolean(car), sprinting, pointerId !== null, keys.KeyC, weapons.framingMelee || encounters.guarding);
   } else {
     person.rotation.y = Math.PI;
     followCamera.showcase();
@@ -1043,8 +1060,12 @@ function tick(now) {
     if (toastTime <= 0) $("#toast").style.opacity = 0;
   }
   const district=world.districtAt(target.x,target.z);
-  const activity=started && playMode==="getaway" && job===1 && wanted ? "QUICK GETAWAY" : "FREE ROAM";
+  const activity=ocean.active?"OCEAN RUN":started && playMode==="getaway" && job===1 && wanted ? "QUICK GETAWAY" : "FREE ROAM";
   $(".district").innerHTML=district+" <span> // "+activity+"</span>";$("#radar>span").textContent=district;
+  const stuntHud=$("#stunt-hud"),stuntState=ocean.state();stuntHud.hidden=!started||!ocean.active||paused;
+  if(!stuntHud.hidden){stuntHud.textContent=stuntState.stage===0?"CHOOSE: 1 SLALOM · 2 LOOP · 3 CORKSCREW | "+stuntState.selected.toUpperCase():stuntState.route.toUpperCase()+" · W GO · S BRAKE · A/D LANE · R RETRY";}
+  if(ocean.active){$("#objective").textContent=stuntState.stage===0?"Pick your ocean road.":stuntState.route;$("#detail").textContent="All routes lead to Cactus Crossing · "+stuntState.completed.length+" / 3 tracks explored";}
+  else if(stuntState.trips&&target.x>770){$("#objective").textContent="Welcome to Cactus Crossing.";$("#detail").textContent="E to explore on foot · Get back in a car and press R to try another track";}
   drawMap(target.x, target.z, car ? car.a : p.a);
   world.updateVisuals(dt, elapsed, car, p, camera, started);
   if(car?.spec.special){
@@ -1065,6 +1086,7 @@ function tick(now) {
   $("#weapon-hint").hidden=!started||paused||wheel.active||!wheel.armed||Boolean(bust);
   canvas.classList.toggle("serving",started&&wheel.armed&&!wheel.hammer&&!paused&&!wheel.active);
   if(started&&!car)encounters.pose();
+  if(ocean.active){cockpit.leave();ocean.sync();ocean.camera(dt)}
   world.render();
 }
 requestAnimationFrame(tick);
@@ -1076,6 +1098,7 @@ addEventListener("resize", () => {
 });
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
+  ocean:ocean.state(),
   monsters:monsters.state(),
   started,playMode,starterReady,streetLife:streetLife?.state()??null,
   weapons:weapons.state(),encounters:encounters.state(),

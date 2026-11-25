@@ -393,3 +393,5 @@ header,#stats,#mission,#radar,#prompt,#toast,footer{pointer-events:none}
 @media (prefers-reduced-motion:reduce) {
   #loading-postcard {transition:none}
 }
+
+#stunt-hud{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);padding:12px 20px;background:#143d45ed;border:1px solid #89f0df;color:#e3fff6;font:700 12px/1.5 sans-serif;letter-spacing:.7px;max-width:88vw;text-align:center;pointer-events:none} #stunt-hud[hidden]{display:none}

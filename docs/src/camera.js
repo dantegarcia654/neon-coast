@@ -148,6 +148,7 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
 
   return {
     update,
+    align(subject){yaw=subject.a;reverseView=freeLookDelay=fightAngle=0;roadView=interior=false;firstFrame=true;},
     reset(){
       fightAngle=yaw=headYaw=headPitch=reverseView=freeLookDelay=lead=preset=0;
       pitch=desiredPitch=.18;radius=clearance=4.6;focusHeight=1.35;shoulder=.38;
