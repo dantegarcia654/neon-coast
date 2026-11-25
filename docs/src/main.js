@@ -191,7 +191,15 @@ for(const radio of document.querySelectorAll('[name="play-mode"]')){
 }
 $("#retry-load").onclick=prepareSelection;
 const keys = {};
-let audioCtx;
+let audioCtx, streetLife, streetSession=0;
+function startStreetLife() {
+  const session=++streetSession;
+  import('./street-life.js').then(({createStreetLife})=>{
+    if(session!==streetSession || !started)return;
+    streetLife ??= createStreetLife(world,audioCtx,weapons.addScenery);
+    streetLife.start(car);
+  }).catch(error=>console.warn("Street scene unavailable",error));
+}
 function sound(freq, duration = 0.1, type = "sine", volume = 0.04, delay = 0) {
   if (!audioCtx) return;
   const o = audioCtx.createOscillator(),
@@ -224,6 +232,8 @@ function heat(n = 1) {
   heatTimer = 0;
 }
 const collisionCells = new Map();
+// Half extents of the cart on the downtown sidewalk.
+colliders.push({x:12.4,z:-85.5,w:1.18,d:.50});
 for(const b of colliders){
   for(let x=Math.floor((b.x-b.w-2)/16);x<=Math.floor((b.x+b.w+2)/16);x++)
     for(let z=Math.floor((b.z-b.d-2)/16);z<=Math.floor((b.z+b.d+2)/16);z++){
@@ -412,6 +422,7 @@ addEventListener("blur", () => {
   }
 });
 const departure = $("#departure");
+departure.add(new Option('Hot-dog corner','Hot-dog corner'));
 departure.add(new Option('East Pier','East Pier'));
 for(const place of trailheads)departure.add(new Option(place.name,place.name));
 function craftHelp(c){
@@ -483,6 +494,7 @@ function endRun(title){
   $("#pause").hidden=false;$("#resume").focus();
 }
 function resetSession(toMenu){
+  ++streetSession;streetLife?.stop();
   bust=0;paused=false;started=!toMenu;teachWeapons=waitingCruiser=false;getawayTime=0;clearInput();
   if(toMenu)++backgroundVersion;
   footPatrol.reset();assault.reset();encounters.reset();assaultCount=0;lastAssault=null;
@@ -504,7 +516,7 @@ function resetSession(toMenu){
   $("#pause").hidden=true;$("#pause-title").textContent="TAKE A BREATH.";$("#resume").textContent="BACK TO THE CITY";
   $("#intro").style.display=toMenu?"":"none";document.body.classList.toggle("menu-open",toMenu);
   if(toMenu){prepareSelection();$("#start").focus();toastTime=0;$("#toast").style.opacity=0}
-  else {toast("BACK ON FOOT · ESC FOR A NEW SESSION");canvas.focus({preventScroll:true})}
+  else {startStreetLife();toast("BACK ON FOOT · ESC FOR A NEW SESSION");canvas.focus({preventScroll:true})}
 }
 $("#start").onclick = () => {
   if(!starterReady || started || !world.characters.getState().ready)return;
@@ -515,6 +527,7 @@ $("#start").onclick = () => {
   audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
   clearInput();canvas.focus({preventScroll:true});
   const chosen=specialSelected(),start=trailheads.find(place=>place.name===departure.value),pier=departure.value==='East Pier';
+  const hotdog=departure.value==='Hot-dog corner';
   if(playMode==="getaway"){
     car=tourCar=world.vehicleModels.starter;
     const site=getawayStart([...cars,...streetCops],car,streetCops[0],blocked);
@@ -526,14 +539,14 @@ $("#start").onclick = () => {
     $("#objective").textContent="Lose the cruiser.";
     $("#detail").textContent="W to accelerate · A/D to steer · Space to handbrake";
     toastTime=0;$("#toast").style.opacity=0;
-  }else if(chosen||start||pier){
+  }else if(chosen||start||pier||hotdog){
     car=tourCar=chosen||world.vehicleModels.starter;
-    if(start||pier){const place=start||{x:159,z:0,a:Math.PI/2};Object.assign(car,{x:place.x,z:place.z,a:place.a,speed:0,traffic:false});
+    if(start||pier||hotdog){const place=start||(hotdog?{x:4,z:-69,a:-.38}:{x:159,z:0,a:Math.PI/2});Object.assign(car,{x:place.x,z:place.z,a:place.a,speed:0,traffic:false});
       if(car.spec.special)car.y=transport.floor(car.x,car.z);}
     p.x=car.x;p.z=car.z;person.visible=false;
     $("#objective").textContent=chosen?chosen.spec.name:"Coastal Loop";
     $("#detail").textContent=chosen?craftHelp(chosen):"Follow the marked road through the four trailheads and back to downtown.";
-    toast((start?.name||(pier?"East Pier":chosen?.spec.station)||"East Pier").toUpperCase());
+    toast((start?.name||(hotdog?"Hot-dog corner":null)||(pier?"East Pier":chosen?.spec.station)||"East Pier").toUpperCase());
   }else toast("NORTH ON CENTRAL AVE · COASTAL LOOP");
   if(playMode==="roam" && $("#chase-start").checked){
     if(!car){car=tourCar=world.vehicleModels.starter;person.visible=false}
@@ -543,6 +556,7 @@ $("#start").onclick = () => {
     heat(1);toast("ONE STAR · DISPATCH ALERTED");
   }
   performance.mark("neon-session-start");
+  startStreetLife();
   streamRoster();
 };
 $("#new-session").onclick=()=>resetSession(true);
@@ -696,6 +710,7 @@ function tick(now) {
     if(bust===0)resetSession(false);
   }
   const target = car || p;
+  if(started)streetLife?.update(bust?0:dt,target,car,wanted,camera);
   if (started && !paused && !bust && !wheel.active) {
     if(teachWeapons || waitingCruiser)getawayTime+=dt;
     if(teachWeapons){
@@ -948,7 +963,7 @@ function tick(now) {
     if (c.traffic && c !== car && dt && started && !bust) {
       decayImpact(c,dt);
       const oldX=c.x,oldZ=c.z;
-      encounters.updateTraffic(c,dt,!car);
+      encounters.updateTraffic(c,dt,!car,streetLife?.trafficLimit(c));
       assault.vehicleStep(c,oldX,oldZ,dt,false);
       if (c.x < -170) c.x = 170;
       if (c.z < -170) c.z = 170;
@@ -1051,7 +1066,7 @@ addEventListener("resize", () => {
 });
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
-  started,playMode,starterReady,
+  started,playMode,starterReady,streetLife:streetLife?.state()??null,
   weapons:weapons.state(),encounters:encounters.state(),
   paused,
   mode: car ? "driving" : "on foot",

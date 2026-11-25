@@ -300,5 +300,5 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     shots.length=tags.length=shotsFired=hits=0;cooldown=kick=0;wheel.reset();
     for(const c of cops)c.snackTime=0;
   }
-  return {policeRockets,wheel,get framingMelee(){return framingTime>0},setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.hammer?hammerName:wheel.armed?weaponName:null,punch:{swings:punches,hits:punchHits},hammer:{visible:hammer.visible,swings,hits:hammerHits,swinging:swingAge>=0&&wheel.hammer},equipped:wheel.hammer?'bananini':wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
+  return {addScenery:surfaces.addScenery,policeRockets,wheel,get framingMelee(){return framingTime>0},setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.hammer?hammerName:wheel.armed?weaponName:null,punch:{swings:punches,hits:punchHits},hammer:{visible:hammer.visible,swings,hits:hammerHits,swinging:swingAge>=0&&wheel.hammer},equipped:wheel.hammer?'bananini':wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
 }

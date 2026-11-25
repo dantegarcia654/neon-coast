@@ -141,7 +141,7 @@ export const craftSpecs=[
   {name:'Solstice Runabout',kind:'boat',length:6.8,power:10,limit:31,home:[225,-4.2,0],seat:[-.43,.56,.32],eye:[-.43,1.40,.26],port:[.78,.76,-.65],weapon:'Tralalero Splash',station:'East Pier'},
   {name:'Keys Floatplane',kind:'plane',length:6.5,power:10,limit:48,home:[237,5.6,Math.PI],seat:[-.23,1.15,-.53],eye:[-.23,1.89,-.69],port:[1.9,1.89,-.42],weapon:'Crocodilo Cannoli',station:'Seaplane Dock'},
   {name:'Heron Scout',kind:'heli',length:6.5,power:13,limit:34,home:[199,9,0],seat:[-.31,.93,-.63],eye:[-.34,1.55,-.96],port:[1.03,.68,-.36],weapon:'Crocodilo Cannoli',station:'Coast Helipad'},
-  {name:'Lido 50 Scooter',kind:'scooter',length:1.95,power:11,limit:20,home:[165,3.4,-Math.PI/2],seat:[0,.88,.26],eye:[0,1.68,.10],port:[.27,.84,-.50],station:'Ocean Avenue'},
+  {name:'Lido 50 Scooter',kind:'scooter',length:1.95,power:11,limit:20,home:[9.6,-74,0],seat:[0,.88,.26],eye:[0,1.68,.10],port:[.27,.84,-.50],station:'Ocean Avenue'},
   {name:'Scrubrunner ATV',kind:'quad',length:2.2,power:15,limit:28,home:[163,-3.8,-Math.PI/2],seat:[0,.99,.24],eye:[0,1.76,.11],port:[.4,.86,-.63],station:'Ocean Avenue'},
 ].map(s=>({...s,special:true,paint:0x41767d,trim:0xead6af}));
 export function makeCraft(scene,spec,police=false){

@@ -168,7 +168,7 @@ export function createEncounters(
       c.driver.seat.visible =
         seated(c) && Math.hypot(target.x - c.x, target.z - c.z) < 55;
   }
-  function updateTraffic(c, dt, onFoot) {
+  function updateTraffic(c, dt, onFoot, streetLimit=Infinity) {
     const n = c.driver;
     if (!n) return;
     n.hornTime = Math.max(0, (n.hornTime || 0) - dt);
@@ -198,6 +198,7 @@ export function createEncounters(
       n.waiting = false;
       c.speed += Math.max(0, Math.min(2.7 * dt, n.cruise - c.speed));
     }
+    c.speed=Math.min(c.speed,streetLimit);
     const oldX = c.x,
       oldZ = c.z,
       v = velocity(c);

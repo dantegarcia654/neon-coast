@@ -3,7 +3,7 @@
 export function getawayStart(vehicles, ride, lead, blocked) {
   let best, bestClearance=-Infinity;
   for (const avenue of [0,48,-48,96,-96]) {
-    for (const z of [-11,85,-59,37,-107,133]) {
+    for (const z of [-59,-56,-62,-11,85,37,-107,133]) {
       const x=avenue+3.6, copX=avenue-4.4, copZ=z-19;
       if (blocked(x,z,1.2) || blocked(copX,copZ,1.4)) continue;
       let clearance=Infinity;

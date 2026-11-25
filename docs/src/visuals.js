@@ -1033,6 +1033,10 @@ export function createWorld(canvas) {
     player.arms[1].rotation.x = -legs[1].rotation.x * 0.75;
     for (const npc of pedestrians) {
       if(npc.behavior)continue;
+      if(npc.streetRole){
+        if(npc.impact)updatePedestrianImpact(npc,dt,time,groundHeight);
+        continue;
+      }
       npc.root.visible=Math.hypot(npc.root.position.x-target.x,npc.root.position.z-target.z)<65;
       if(updatePedestrianImpact(npc,dt,time,groundHeight))continue;
       npc.walkOffsetX=(npc.walkOffsetX||0)*Math.exp(-.6*dt);

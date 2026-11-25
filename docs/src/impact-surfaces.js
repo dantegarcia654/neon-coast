@@ -6,7 +6,7 @@ export function createImpactSurfaces(world) {
   const cells=new Map(),large=[],objects=[];
   const cell=v=>Math.floor(v/14), key=(x,z)=>x+','+z;
   const matrix=new T.Matrix4(),instance=new T.Matrix4();
-  for(const mesh of world.shotSurfaces){
+  function addScenery(mesh){
     const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();
     for(let i=0;i<(mesh.isInstancedMesh?mesh.count:1);i++){
       matrix.copy(mesh.matrixWorld);
@@ -20,6 +20,7 @@ export function createImpactSurfaces(world) {
       }
     }
   }
+  for(const mesh of world.shotSurfaces)addScenery(mesh);
   const raycaster=new T.Raycaster(),proxy=new T.Mesh(),normalMatrix=new T.Matrix3();
   const end=new T.Vector3(),boxPoint=new T.Vector3(),normal=new T.Vector3(),list=[];
   let generation=0;
@@ -65,5 +66,5 @@ export function createImpactSurfaces(world) {
   for(const b of world.roadblocks||[])objects.push({root:b.root,kind:'barricade',radius:6});
   for(const p of world.pedestrians)objects.push({root:p.root,kind:'pedestrian',civilian:p,radius:2.4});
   for(const u of world.footOfficers)objects.push({root:u.g,kind:'officer',vehicle:u,radius:2.6});
-  return {cast};
+  return {cast,addScenery};
 }

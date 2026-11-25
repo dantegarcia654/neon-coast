@@ -6,9 +6,11 @@ Use a desktop browser with WebGL 2 and a keyboard and mouse. Choose a character 
 
 A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthrope or Mara Vega. Take a sports car from downtown to the coastal trails, board a boat at East Pier, or fly out over the coast. Five wanted levels bring cruisers, roadblocks, helicopters and officers carrying hot-dog launchers.
 
+The Quick Getaway route passes the Last Order hot-dog cart. To park nearby and watch the queue and crosswalk, choose **Free Roam → Hot-dog corner**. Listen for the griddle and storefront radio there, or basketballs and sneaker squeaks at the downtown court.
+
 ## Play on your computer
 
-1. [Download Neon Coast V20.1](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v20.1.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V21](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v21.0.0.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
