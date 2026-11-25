@@ -72,7 +72,7 @@ export function createWorld(canvas) {
   const texLoader = new THREE.TextureLoader();
   let loaded = 0;
   const texture = (url, srgb = true) => {
-    const t = texLoader.load("/assets/" + url, () => loaded++);
+    const t = texLoader.load("./assets/" + url, () => loaded++);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
@@ -85,7 +85,7 @@ export function createWorld(canvas) {
     plasterN = texture("plaster-normal.jpg", false);
   const pmrem = new THREE.PMREMGenerator(renderer);
   let environmentReady = false;
-  new HDRLoader().load("/assets/sunset.hdr", (hdr) => {
+  new HDRLoader().load("./assets/sunset.hdr", (hdr) => {
     hdr.mapping = THREE.EquirectangularReflectionMapping;
     scene.environment = pmrem.fromEquirectangular(hdr).texture;
     scene.environmentIntensity = 0.8;

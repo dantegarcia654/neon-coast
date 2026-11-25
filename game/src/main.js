@@ -101,7 +101,7 @@ function stageCar() {
     $("#garage-car").src=portraits.get(c);
     if(fixed){const opt=new Option(c.spec.station,'station');opt.dataset.station='1';departure.add(opt);departure.value='station'}
     else if(departure.value==='city')departure.value='East Pier';
-  }else if(world.vehicleModels.stage(garage.value))$("#garage-car").src="/assets/garage/"+garage.value.replaceAll(" ","-")+".jpg";
+  }else if(world.vehicleModels.stage(garage.value))$("#garage-car").src="./assets/garage/"+garage.value.replaceAll(" ","-")+".jpg";
 }
 garage.addEventListener("change",stageCar);
 const keys = {};

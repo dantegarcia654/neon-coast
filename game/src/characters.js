@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const CHARACTER_DEFINITIONS = [
-  {id:'jean',yaw:Math.PI,name:'Jean Philanthrope',tag:'THE UNLIKELY LOCAL',description:'A familiar face. An unfamiliar city.',height:2.02,portrait:'/assets/characters/jean-reference.png',model:'/assets/characters/jean.glb',idle:'/assets/characters/jean-idle.json',color:'#c8a776'},
-  {id:'mara',yaw:Math.PI,name:'Mara Vega',tag:'THE STREET RACER',description:'Knows every turn. Owes nobody a favor.',height:1.74,portrait:'/assets/characters/mara-reference.png',model:'/assets/characters/mara.glb',idle:'/assets/characters/mara-idle.json',color:'#82bfb7'},
+  {id:'jean',yaw:Math.PI,name:'Jean Philanthrope',tag:'THE UNLIKELY LOCAL',description:'A familiar face. An unfamiliar city.',height:2.02,portrait:'./assets/characters/jean-reference.png',model:'./assets/characters/jean.glb',idle:'./assets/characters/jean-idle.json',color:'#c8a776'},
+  {id:'mara',yaw:Math.PI,name:'Mara Vega',tag:'THE STREET RACER',description:'Knows every turn. Owes nobody a favor.',height:1.74,portrait:'./assets/characters/mara-reference.png',model:'./assets/characters/mara.glb',idle:'./assets/characters/mara-idle.json',color:'#82bfb7'},
 ];
 
 export function createCharacterSystem(container, fallback) {

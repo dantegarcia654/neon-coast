@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Neon Coast — Open City</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23d3ffa1%27/%3E%3Ctext x=%278%27 y=%2745%27 font-size=%2736%27 font-family=%27sans-serif%27 font-weight=%27bold%27 fill=%27%23122a2d%27%3ENC%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body class="menu-open">
     <canvas id="world" tabindex="-1"></canvas>
@@ -65,7 +65,7 @@
         <div class="selector-heading"><span>CHOOSE YOUR LEAD</span><b>01 / 02</b></div>
         <div id="character-list" aria-label="Playable characters"></div>
         <div id="character-status" role="status">Loading playable character models…</div>
-        <label class="garage-label" for="starter-car"><img id="garage-car" src="/assets/garage/Strada-GT.jpg" alt=""><span>Starting vehicle</span> <select id="starter-car" disabled><option>Loading garage…</option></select></label>
+        <label class="garage-label" for="starter-car"><img id="garage-car" src="./assets/garage/Strada-GT.jpg" alt=""><span>Starting vehicle</span> <select id="starter-car" disabled><option>Loading garage…</option></select></label>
         <label for="departure" class="departure">Start location <select id="departure"><option value="city">Downtown</option></select></label>
         <label class="departure">Start with a police chase <input id="chase-start" type="checkbox"></label>
         <label class="departure">Foot patrols when on foot <input id="foot-patrols" type="checkbox" checked></label>
@@ -85,11 +85,11 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "/vendor/three.module.js",
-          "three/addons/": "/vendor/addons/"
+          "three": "./vendor/three.module.js",
+          "three/addons/": "./vendor/addons/"
         }
       }
     </script>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

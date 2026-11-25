@@ -16,7 +16,7 @@ export function installVehicleModels(cars) {
   }
   async function load(spec) {
     try {
-      const {scene:template} = await loader.loadAsync('/assets/vehicles/'+spec.file+'.glb');
+      const {scene:template} = await loader.loadAsync('./assets/vehicles/'+spec.file+'.glb');
       const bounds = new THREE.Box3().setFromObject(template);
       const size = bounds.getSize(new THREE.Vector3());
       const holder = new THREE.Group();

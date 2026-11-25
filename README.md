@@ -1,5 +1,9 @@
 # Neon Coast
 
+**[Play Neon Coast in your browser](https://dantegarcia654.github.io/neon-coast/)**
+
+Use a desktop browser with WebGL 2 and a keyboard and mouse. Choose a character and starting vehicle, then enter the city.
+
 A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthrope or Mara Vega. Take a sports car from downtown to the coastal trails, board a boat at East Pier, or fly out over the coast. Five wanted levels bring cruisers, roadblocks, helicopters and officers carrying hot-dog launchers.
 
 ## Play on your computer
