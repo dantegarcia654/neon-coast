@@ -42,6 +42,6 @@ cd neon-coast
 node server.mjs
 ```
 
-Edit the JavaScript in `game/src/`, then refresh your browser. The start screen and HUD are in `game/index.html` and `game/style.css`. Models and textures live in `game/assets/`. The server serves the game directory directly, so no build or npm install is needed.
+Edit the JavaScript in `docs/src/`, then refresh your browser. The start screen and HUD are in `docs/index.html` and `docs/style.css`. Models and textures live in `docs/assets/`. The local server serves `docs/` directly. GitHub Pages publishes that same folder from `main`. Edits go live after GitHub finishes the Pages deployment.
 
 Neon Coast is an independent, AI-assisted prototype. See the [asset credits](CREDITS.md) for authorship and third-party licenses.

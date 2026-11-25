@@ -6,6 +6,6 @@ The Jean Philanthrope and Mara Vega models and their walk and idle animations we
 
 Poly Haven supplied the asphalt and plaster surface maps and the environment lighting under CC0. [Asphalt 02](https://polyhaven.com/a/asphalt_02) · [Plastered Wall 02](https://polyhaven.com/a/plastered_wall_02) · [Sunset JHB Central](https://polyhaven.com/a/sunset_jhbcentral) · [Poly Haven license](https://polyhaven.com/license)
 
-Three.js and its bundled addons use the MIT license. [Three.js license](game/vendor/THREE-LICENSE.txt)
+Three.js and its bundled addons use the MIT license. [Three.js license](docs/vendor/THREE-LICENSE.txt)
 
 The interface requests Barlow Condensed and DM Sans through Google Fonts, with local fallback fonts. The game uses original and generated artwork inspired by open-city games and internet characters. [Tung Tung Tung Sahur reference](https://www.mementumlab.com/wiki-tung-tung) · [GTA VI visual references](https://www.rockstargames.com/VI/media/screenshots)
