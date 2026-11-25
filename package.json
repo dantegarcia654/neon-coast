@@ -1,0 +1,8 @@
+{
+  "name": "neon-coast",
+  "version": "13.0.0",
+  "private": true,
+  "description": "A single-player open-city driving and pursuit game",
+  "type": "module",
+  "scripts": {"start": "node server.mjs"}
+}

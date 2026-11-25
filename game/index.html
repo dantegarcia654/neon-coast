@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Neon Coast — Open City</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23d3ffa1%27/%3E%3Ctext x=%278%27 y=%2745%27 font-size=%2736%27 font-family=%27sans-serif%27 font-weight=%27bold%27 fill=%27%23122a2d%27%3ENC%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="menu-open">
+    <canvas id="world" tabindex="-1"></canvas>
+    <div id="vignette"></div>
+    <header>
+      <div class="brand">NC<span>NEON COAST</span></div>
+      <div class="district">VICE HARBOR <span> // FREE ROAM</span></div>
+      <div class="dispatch"><div id="wanted">☆☆☆☆☆</div><small id="chase-status" hidden></small></div>
+    </header>
+    <section id="mission">
+      <div class="eyebrow">STREET JOB / 01</div>
+      <h1 id="objective">Borrow something fast.</h1>
+      <p id="detail">Find a car. Get in. Make it yours.</p>
+      <div id="progress"><i></i></div>
+    </section>
+    <div id="weapon-wheel" hidden role="dialog" aria-label="Weapon wheel">
+      <div class="wheel-layout">
+        <div class="weapon-disc">
+          <button data-slot="0" aria-label="Unarmed"><span class="palm" aria-hidden="true">✋</span><small>Unarmed</small></button>
+          <button data-slot="1" aria-label="The Meat Rocket hot-dog launcher"><img alt=""><small>The Meat Rocket</small></button>
+          <span class="wheel-hub" aria-hidden="true">NC</span>
+        </div>
+        <div class="wheel-caption"><h2></h2><p></p><small>Move to select <i>·</i> Release Tab to equip</small></div>
+      </div>
+    </div>
+    <div id="flight-controls" hidden><b id="flight-alt"></b> AGL &nbsp; · &nbsp; Q climb &nbsp; Z descend</div>
+    <div id="weapon-hint" hidden><b>The Meat Rocket</b><span>Click to serve · Drag to look</span></div>
+    <div id="toast"></div>
+    <div id="prompt"></div>
+    <aside id="stats">
+      <span id="mode">ON FOOT</span
+      ><strong id="speed">0<small> MPH</small></strong>
+      <div id="rocket-warning" hidden></div>
+      <div class="vital" id="character-health"><label for="character-hp">CHARACTER <b>100%</b></label>
+        <meter id="character-hp" aria-label="Character health" min="0" max="100" value="100"></meter></div>
+      <div class="vital" id="vehicle-health"><label for="vehicle-hp">VEHICLE <b>—</b></label>
+        <meter id="vehicle-hp" aria-label="Vehicle health" min="0" max="100" value="0"></meter></div>
+    </aside>
+    <div id="radar">
+      <canvas id="map" width="200" height="200"></canvas>
+      <div>N</div>
+      <span>VICE HARBOR</span>
+    </div>
+    <footer>
+      <span><kbd>W A S D</kbd> MOVE / DRIVE</span
+      ><span><kbd>E</kbd> ENTER / EXIT</span
+      ><span><kbd>SPACE</kbd> HANDBRAKE</span
+      ><span><kbd>SHIFT</kbd> SPRINT</span><span><kbd>R</kbd> RECOVER</span
+      ><span><kbd>F</kbd> DRIVER SEAT</span><span><kbd>V</kbd> VIEW</span><span><kbd>C</kbd> LOOK BACK</span>
+      <span><kbd>TAB</kbd> WEAPON WHEEL</span><span><kbd>ESC</kbd> PAUSE</span>
+    </footer>
+    <div id="intro">
+      <div class="intro-card">
+        <div class="eyebrow">A SMALL CITY. A BAD IDEA.</div>
+        <h2>NEON<br /><em>COAST</em></h2>
+        <p>Take a ride. Stir up trouble. Lose the heat.</p>
+        <div class="selector-heading"><span>CHOOSE YOUR LEAD</span><b>01 / 02</b></div>
+        <div id="character-list" aria-label="Playable characters"></div>
+        <div id="character-status" role="status">Loading playable character models…</div>
+        <label class="garage-label" for="starter-car"><img id="garage-car" src="/assets/garage/Strada-GT.jpg" alt=""><span>Starting vehicle</span> <select id="starter-car" disabled><option>Loading garage…</option></select></label>
+        <label for="departure" class="departure">Start location <select id="departure"><option value="city">Downtown</option></select></label>
+        <label class="departure">Start with a police chase <input id="chase-start" type="checkbox"></label>
+        <label class="departure">Foot patrols when on foot <input id="foot-patrols" type="checkbox" checked></label>
+        <div class="selected-caption">PLAYING AS <b id="selected-name">Jean Philanthrope</b></div>
+        <button id="start" disabled>ENTER THE CITY <span>↗</span></button>
+        <div class="intro-note">
+          YOUR STORY STARTS AT THE COAST<br />WASD to move · E
+          to steal a car · Drag to look
+        </div>
+      </div>
+    </div>
+    <div id="pause" hidden>
+      <h2 id="pause-title">TAKE A BREATH.</h2>
+      <button id="resume">BACK TO THE CITY</button>
+      <button id="new-session">NEW SESSION</button>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three.module.js",
+          "three/addons/": "/vendor/addons/"
+        }
+      }
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

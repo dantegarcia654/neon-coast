@@ -1,0 +1,349 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap");
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #fff;
+  background: #172731;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+#world {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#vignette {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    #051c3155,
+    transparent 25%,
+    transparent 70%,
+    #05131e77
+  );
+}
+header {
+  position: absolute;
+  top: 30px;
+  left: 35px;
+  right: 35px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.brand {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 37px;
+  font-weight: 900;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.brand span {
+  font-family: "DM Sans";
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 3px;
+  width: 60px;
+  line-height: 1.7;
+}
+.district {
+  border-left: 1px solid #ffffff45;
+  padding-left: 24px;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.district span {
+  opacity: 0.5;
+}
+#wanted {
+  margin-left: auto;
+  color: #ffde8d;
+  font-size: 30px;
+  letter-spacing: 5px;
+  text-shadow: 0 1px 15px #ffac4e55;
+}
+#mission {
+  position: absolute;
+  top: 120px;
+  left: 36px;
+  max-width: 330px;
+  background: linear-gradient(90deg, #0c2430b8, #0c243000);
+  padding: 20px;
+  border-left: 3px solid #c8ff8a;
+}
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #d3fa99;
+}
+h1 {
+  font-family: "Barlow Condensed";
+  font-size: 32px;
+  margin: 9px 0 5px;
+  letter-spacing: 0.3px;
+}
+#detail {
+  font-size: 12px;
+  line-height: 1.7;
+  opacity: 0.8;
+  margin: 0;
+}
+#progress {
+  height: 2px;
+  background: #ffffff24;
+  margin-top: 16px;
+}
+#progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #ccff90;
+  transition: width 0.3s;
+}
+#radar {
+  position: absolute;
+  bottom: 84px;
+  left: 35px;
+  width: 180px;
+  height: 180px;
+  background: #112c35d9;
+  border: 1px solid #ffffff45;
+  border-radius: 50%;
+  box-shadow: 0 8px 30px #0005;
+}
+#map {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+#radar > div {
+  position: absolute;
+  top: 9px;
+  left: 84px;
+  font-size: 10px;
+  color: #d4fba2;
+}
+#radar > span {
+  position: absolute;
+  bottom: -22px;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 3px;
+  font-size: 9px;
+}
+#stats {
+  position: absolute;
+  right: 36px;
+  bottom: 90px;
+  width: 170px;
+  text-align: right;
+}
+#mode {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #d4fba2;
+}
+#speed {
+  display: block;
+  font-family: "Barlow Condensed";
+  font-size: 72px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+#speed small {
+  font-family: "DM Sans";
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+.vital { --fill:#caff90; margin-top:6px; padding:5px 7px; background:#101a20cf; }
+#vehicle-health { --fill:#7ad3ec; }
+#stats .vital.critical { --fill:#ff775f; }
+.vital.inactive { opacity:.55; }
+.vital label { display:flex; justify-content:space-between; font-size:10px; letter-spacing:1.3px; }
+.vital b { font-variant-numeric:tabular-nums; }
+.vital meter { appearance:none; display:block; width:100%; height:5px; margin-top:4px; background:#435054; border:0; }
+.vital meter::-webkit-meter-bar { height:5px; border:0; border-radius:0; background:#435054; }
+.vital meter::-webkit-meter-optimum-value { background:var(--fill); }
+.vital meter::-moz-meter-bar { background:var(--fill); }
+#rocket-warning { position:absolute; bottom:100%; right:0; background:#5c1e10ec; color:#ffe8a7;
+  padding:7px 9px; font-size:11px; font-weight:700; letter-spacing:.8px; white-space:nowrap; border-left:3px solid #ffb737; }
+footer {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+kbd {
+  font-family: inherit;
+  border: 1px solid #ffffff55;
+  border-radius: 3px;
+  padding: 4px 6px;
+  margin-right: 6px;
+}
+#prompt {
+  position: absolute;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: #0c2430db;
+  padding: 12px 20px;
+  border-radius: 3px;
+  display: none;
+}
+#toast {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #d8ffa7;
+  text-shadow: 0 2px 8px #000;
+  transition: opacity 0.5s;
+}
+#intro,
+#pause {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #061a29ed, #061a2977 45%, transparent);
+  display: flex;
+  align-items: center;
+  padding: 7vw;
+}
+#pause[hidden] {
+  display: none;
+}
+#pause {
+  background: #071e2cdb;
+  flex-direction: column;
+  justify-content: center;
+}
+.intro-card {
+  max-width: 450px;
+}
+h2 {
+  font-family: "Barlow Condensed";
+  font-size: clamp(80px, 10vw, 148px);
+  line-height: 0.8;
+  letter-spacing: -3px;
+  margin: 25px 0;
+  font-weight: 900;
+  font-style: italic;
+}
+h2 em {
+  font-style: inherit;
+  color: #d1fc99;
+}
+.intro-card p {
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+  margin: 30px 0;
+}
+button {
+  background: #d3ffa1;
+  border: 0;
+  color: #122a2d;
+  padding: 19px 25px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 800;
+  cursor: pointer;
+  min-width: 280px;
+  text-align: left;
+}
+button span {
+  float: right;
+}
+button:hover {
+  background: #edffd7;
+}
+.intro-note {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #b9c7ce;
+  margin-top: 22px;
+}
+@media (max-width: 800px) {
+  footer {
+    gap: 7px;
+    font-size: 7px;
+  }
+  .district {
+    display: none;
+  }
+  #mission {
+    top: 95px;
+  }
+  header {
+    top: 20px;
+  }
+  #radar {
+    width: 135px;
+    height: 135px;
+  }
+  #radar > div {
+    left: 63px;
+  }
+}
+/* Selectable leads are backed by the same 3D models used during play. */
+#intro{background:linear-gradient(90deg,#061824f5 0%,#061824dd 33%,#06182444 60%,transparent);padding:4vh 5vw}.intro-card{max-width:430px;width:37vw}#intro h2{font-size:clamp(64px,7.2vw,106px);margin:16px 0}#intro .intro-card>p{margin:16px 0 23px;font-size:12px}.selector-heading{display:flex;justify-content:space-between;letter-spacing:2px;font-size:9px;margin-bottom:11px}.selector-heading b{color:#c8e8aa;font-weight:500}#character-list{display:flex;flex-direction:column;gap:9px}.character-card{position:relative;display:flex;align-items:center;min-width:0;width:100%;padding:0;background:#162b35d9;color:#fff;text-align:left;border:1px solid #ffffff28;border-radius:2px;letter-spacing:0;overflow:hidden;min-height:95px}.character-card:hover{background:#27434c}.character-card.selected{border-color:#d3ffa1;background:#294034d9;box-shadow:inset 3px 0 #d3ffa1}.character-card img{width:76px;height:95px;object-fit:cover;object-position:50% 14%;mix-blend-mode:screen;opacity:.9}.character-copy{padding:12px 14px;display:flex;flex-direction:column;gap:5px}.character-copy small{font-size:7px;letter-spacing:1.5px;color:#cae4ac}.character-copy strong{font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:600}.character-copy>span{font-size:9px;font-weight:400;opacity:.65;letter-spacing:0}.character-card>b{margin-left:auto;align-self:flex-start;padding:12px;font-size:9px;color:#bcd5ac}#character-status{font-size:8px;letter-spacing:1px;color:#cce9ac;margin:12px 0 16px;min-height:11px}.selected-caption{font-size:8px;letter-spacing:2px;color:#b5c6c8;margin-bottom:8px}.selected-caption b{color:#fff;font-weight:500;letter-spacing:1px}#start{width:100%}#start:disabled{opacity:.4;cursor:wait}#intro .intro-note{margin-top:12px;font-size:8px;line-height:1.6}@media(max-width:850px){.intro-card{width:45vw}#intro h2{font-size:64px}.character-copy strong{font-size:20px}.character-copy>span{display:none}.character-card,.character-card img{height:76px;min-height:76px}.character-card img{width:58px}}
+.menu-open header,.menu-open #mission,.menu-open #radar,.menu-open #stats,.menu-open footer{opacity:0;pointer-events:none}.menu-open #vignette{background:linear-gradient(0deg,#071b2a77,transparent 35%,transparent 80%,#071b2a33)}
+
+.garage-label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 15px;color:#d9e6e3;font-size:12px}
+#starter-car{background:#142a34;color:#fff;border:1px solid #728682;border-radius:3px;padding:7px 10px;font:inherit;max-width:72%}
+@media(max-height:720px){#intro{overflow-y:auto;align-items:safe center}.character-card{min-height:58px}.character-card img{height:58px}#intro h2{font-size:52px;margin:5px 0}#intro .intro-card>p{margin:8px 0}}
+
+.garage-label{display:grid;grid-template-columns:87px 1fr;column-gap:12px;row-gap:3px;margin:8px 0 12px}.garage-label img{grid-row:span 2;width:87px;height:53px;border-radius:3px;object-fit:cover}.garage-label span{align-self:end;font-size:10px;color:#cce4b4}.garage-label select{width:100%;max-width:100%}
+
+.departure{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#d4e9cc;font-size:12px;margin:0 0 10px}.departure select{background:#142a34;color:white;border:1px solid #728682;border-radius:3px;padding:5px 10px;font:inherit}
+
+/* Two stocked sectors, with the playable model rendered into the launcher slot. */
+#weapon-wheel{position:fixed;inset:0;z-index:15;display:grid;place-items:center;background:radial-gradient(ellipse at center,#0919178a,#07141b93);backdrop-filter:blur(3px)}
+#weapon-wheel[hidden],#weapon-hint[hidden],.snack-tag[hidden]{display:none}
+.wheel-layout{position:relative;display:grid;place-items:center}
+.weapon-disc{width:min(390px,68vw,54vh);aspect-ratio:1;display:flex;position:relative;border-radius:50%;overflow:hidden;outline:1px solid #f3ecd988;outline-offset:5px;box-shadow:0 15px 60px #0005}
+.weapon-disc button{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;border:0;border-radius:0;min-width:0;width:50%;padding:0 8%;background:#15212aea;color:#c8d2ce;transition:background .12s;cursor:pointer}
+.weapon-disc button+button{border-left:2px solid #c6cfbf66}
+.weapon-disc button[aria-pressed=true]{background:#b9d89cef;color:#19281e;box-shadow:inset 0 0 40px #e6ffc952}
+.weapon-disc img,.weapon-disc .palm{width:125%;height:42%;object-fit:contain;filter:drop-shadow(0 4px 6px #0005)}
+.weapon-disc .palm{display:grid;place-items:center;font-size:clamp(38px,6vw,70px);filter:grayscale(1)}
+.weapon-disc small,.wheel-caption small,#weapon-hint span{font:600 10px 'DM Sans',sans-serif;letter-spacing:.09em}
+.weapon-disc small{text-transform:uppercase}
+.wheel-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:19%;aspect-ratio:1;display:grid;place-items:center;background:#14222a;border:1px solid #e3eecc8c;border-radius:50%;color:#d8e5d1;font:italic 800 20px 'Barlow Condensed',sans-serif;pointer-events:none}
+.wheel-caption{position:absolute;top:calc(100% + 16px);width:min(95vw,500px);text-align:center;text-shadow:0 2px 8px #000}
+.wheel-caption h2{letter-spacing:0;font:700 clamp(25px,3vw,38px) 'Barlow Condensed',sans-serif;margin:0;color:#fff}
+.wheel-caption p{margin:3px 0 12px;font-size:13px;color:#e2e8d5}
+.wheel-caption small{color:#d5decc}.wheel-caption i{margin:0 5px;color:#c7ec9e}
+#world.serving{cursor:crosshair}
+#weapon-hint{position:fixed;right:34px;top:83px;text-align:right;pointer-events:none;text-shadow:0 1px 4px #000}
+#weapon-hint b{display:block;font:600 21px 'Barlow Condensed',sans-serif}
+#weapon-hint span{color:#e0efc7;letter-spacing:.02em}
+.snack-tag{position:fixed;transform:translate(-50%,-100%) rotate(-6deg);color:#ffe175;text-shadow:2px 2px #683022,-1px -1px #683022;letter-spacing:.04em;font:italic 800 26px 'Barlow Condensed',sans-serif;pointer-events:none}
+header,#stats,#mission,#radar,#prompt,#toast,footer{pointer-events:none}
+
+#flight-controls{position:fixed;right:34px;top:135px;color:#f4e9c9;font:600 12px 'DM Sans',sans-serif;text-shadow:0 1px 4px #000;pointer-events:none}.departure input{accent-color:#c8e6a9}#intro{overflow-y:auto;align-items:safe center}
+
+.dispatch{margin-left:auto;text-align:right}
+#chase-status{display:block;font-size:10px;letter-spacing:.16em;color:#f5d99c;text-shadow:0 1px 5px #121820}
+#chase-status[hidden]{display:none}
+#new-session{margin-top:12px;background:transparent;color:#e7efe9;border:1px solid #748784}
+#world:focus{outline:none}
+#pause{z-index:15}
