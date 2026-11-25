@@ -1,5 +1,6 @@
 import {createBananaHammer,hammerName,hammerPose,hammerSwing} from './bananini.js';
 import {crocName,crocLauncher,spinProps} from './crocodilo.js';
+import {beginBodyReaction} from './pedestrian-impact.js';
 import {createBlasts} from './blast.js';
 import {createPoliceRockets} from './police-rockets.js';
 import {disablePatrol} from './pursuit.js';
@@ -154,7 +155,9 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     document.body.append(flag);tags.push({flag,c});
 
   }
-  let strikeTime=0,swingAge=-1,swings=0,hammerHits=0,pendingContact=null;
+  const punchSwing={duration:.36,contact:.145,cooldown:.46,reach:1.42};
+  let swingAge=-1,swingKind=null,swings=0,hammerHits=0,punches=0,punchHits=0,pendingContact=null;
+  let framingTime=0;
   const strikePoint=new T.Vector3();
   function findStrikeTarget(actor,autoAim,limit){
     pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.18,actor.z);
@@ -186,21 +189,18 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
   }
   function strike(actor,autoAim=false){
     if(cooldown>0||wheel.active||!wheel.melee)return;
-    const target=findStrikeTarget(actor,autoAim,wheel.hammer?hammerSwing.reach:2.04);
-    if(wheel.hammer){
-      swingAge=0;swings++;cooldown=hammerSwing.cooldown;pendingContact=null;
-      if(target){
-        actor.a=Math.atan2(actor.x-target.point.x,actor.z-target.point.z);
-        pendingContact={target,local:target.mesh.worldToLocal(target.point.clone())};
-      }
-      return;
+    const heavy=wheel.hammer, timing=heavy?hammerSwing:punchSwing;
+    const target=findStrikeTarget(actor,autoAim,timing.reach);
+    swingAge=0;swingKind=heavy?'hammer':'strike';cooldown=timing.cooldown;
+    if(heavy)swings++;else punches++;
+    pendingContact=null;
+    strikePoint.set(actor.x-Math.sin(actor.a),getGroundHeight(actor.x,actor.z)+1.46,actor.z-Math.cos(actor.a));
+    if(target){
+      framingTime=1.5;
+      actor.a=Math.atan2(actor.x-target.point.x,actor.z-target.point.z);
+      strikePoint.copy(target.point);
+      pendingContact={target,local:target.mesh.worldToLocal(target.point.clone())};
     }
-    cooldown=.46;strikeTime=.28;
-    strikePoint.set(actor.x-Math.sin(actor.a)*.95,pos.y+.19,actor.z-Math.cos(actor.a)*.95);
-    if(!target)return;
-    strikePoint.copy(target.point);actor.a=Math.atan2(actor.x-target.point.x,actor.z-target.point.z);
-    if(target.civilian && target.civilian.behavior!=='defeated')onAssault(target.civilian,'strike');
-    else if(target.kind==='officer')tag(target.vehicle,'strike');
   }
   function fire(actor,car,interior){
     if(wheel.melee){if(!car)strike(actor);return}
@@ -222,38 +222,51 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     scene.add(m);shots.push({m,explosive,origin,end:dest,age:0,duration,arc:explosive?0:Math.min(1.6,distance*.047),skip:car,tracked,localHit});
     shotsFired++;cooldown=explosive?1.15:.33;kick=1;onLaunch(explosive);
   }
-  function stepHammer(dt,actor,canSwing){
-    if(!canSwing){swingAge=-1;pendingContact=null;return;}
+  function stepMelee(dt,actor,canSwing){
+    if(!canSwing || (swingKind==='hammer')!==wheel.hammer){swingAge=-1;pendingContact=null;return;}
     if(swingAge<0)return;
+    const heavy=swingKind==='hammer', timing=heavy?hammerSwing:punchSwing;
     swingAge+=dt;
-    if(swingAge>=hammerSwing.contact && pendingContact){
+    if(swingAge>=timing.contact && pendingContact){
       const {target,local}=pendingContact;pendingContact=null;
       const victim=target.civilian||target.vehicle;
       const root=victim.root||victim.g;
       if(root.visible&&victim.behavior!=='defeated'&&victim.behavior!=='exiting'){
         pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.18,actor.z);
         target.mesh.localToWorld(point.copy(local));delta.subVectors(point,pos);
-        const reach=delta.length(),contact=reach<=hammerSwing.reach+.07 &&
+        const reach=delta.length(),contact=reach<=timing.reach+.07 &&
           surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.12);
         if(contact&&(contact.civilian===victim||contact.vehicle===victim)){
-          if(target.civilian)onAssault(victim,'hammer');
-          else {tag(victim,'hammer');victim.snackTime=Math.max(victim.snackTime,12);}
-          hammerHits++;
+          if(target.civilian)onAssault(victim,swingKind);
+          else {
+            tag(victim,swingKind);
+            beginBodyReaction(victim,victim.x-actor.x,victim.z-actor.z,heavy?5:2.7,heavy?2.4:0,blastOptions.blocked,heavy?.65:.12);
+            if(heavy)victim.snackTime=Math.max(victim.snackTime,12);
+          }
+          if(heavy)hammerHits++;else punchHits++;
         }
       }
     }
-    if(swingAge>=hammerSwing.duration)swingAge=-1;
+    if(swingAge>=timing.duration)swingAge=-1;
   }
   function update(dt,actor,car,interior,live,handsBusy=false){
-    stepHammer(dt,actor,wheel.hammer&&live&&!car&&!handsBusy);
+    framingTime=car||!wheel.melee ? 0 : Math.max(0,framingTime-dt);
+    stepMelee(dt,actor,wheel.melee&&live&&!car&&!handsBusy);
     loadout(car);propTime+=dt;if(wheel.equipped===2)spinProps(model,propTime);cooldown=Math.max(0,cooldown-dt);kick=Math.max(0,kick-dt*6);
     if(live&&!handsBusy)place(actor,car,interior);else hammer.visible=model.visible=mount.visible=false;
-    if(strikeTime>0){
-      strikeTime=Math.max(0,strikeTime-dt);
-      if(live&&!handsBusy&&!car&&!wheel.armed && world.characters.shoulderPosition(pos)){
-        const progress=1-strikeTime/.28;
-        world.characters.reachRight(point.lerpVectors(pos,strikePoint,.38+.62*Math.sin(Math.PI*progress)));
-      }
+    if(swingAge>=0 && !wheel.armed){
+      const person=world.person, side=punches%2?1:-1;
+      const wind=T.MathUtils.smoothstep(swingAge,0,.055);
+      const extend=T.MathUtils.smoothstep(swingAge,.055,punchSwing.contact);
+      const recover=T.MathUtils.smoothstep(swingAge,punchSwing.contact+.028,punchSwing.duration);
+      const jab=extend*(1-recover), pull=wind*(1-extend);
+      person.rotateY(side*(pull*.15-jab*.29));
+      person.rotateX(jab*.105-pull*.06);
+      person.translateZ(-.22*jab);
+      const hand=person.localToWorld(handOffset.set(side*.21,1.42,-.24+pull*.09));
+      hand.lerp(strikePoint,jab);
+      const guard=person.localToWorld(leftGrip.set(-side*.21,1.47,-.26));
+      world.characters.holdLauncher(side>0?hand:guard,side>0?guard:hand);
     }
     for(let i=shots.length-1;i>=0;i--){
       const s=shots[i];s.age+=dt;const t=Math.min(1,s.age/s.duration);
@@ -280,11 +293,12 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
   }
   function reset(){
     for(const s of shots)scene.remove(s.m);
-    swingAge=-1;pendingContact=null;swings=hammerHits=0;hammer.visible=false;
+    swingAge=-1;pendingContact=null;swings=hammerHits=punches=punchHits=0;hammer.visible=false;
+    framingTime=0;
     blasts.reset();sauce.reset();policeRockets.reset();
     for(const t of tags)t.flag.remove();
-    shots.length=tags.length=shotsFired=hits=0;cooldown=kick=strikeTime=0;wheel.reset();
+    shots.length=tags.length=shotsFired=hits=0;cooldown=kick=0;wheel.reset();
     for(const c of cops)c.snackTime=0;
   }
-  return {policeRockets,wheel,setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.hammer?hammerName:wheel.armed?weaponName:null,hammer:{visible:hammer.visible,swings,hits:hammerHits,swinging:swingAge>=0},equipped:wheel.hammer?'bananini':wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
+  return {policeRockets,wheel,get framingMelee(){return framingTime>0},setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.hammer?hammerName:wheel.armed?weaponName:null,punch:{swings:punches,hits:punchHits},hammer:{visible:hammer.visible,swings,hits:hammerHits,swinging:swingAge>=0&&wheel.hammer},equipped:wheel.hammer?'bananini':wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
 }

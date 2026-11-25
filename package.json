@@ -1,6 +1,6 @@
 {
   "name": "neon-coast",
-  "version": "17.0.0",
+  "version": "18.0.0",
   "private": true,
   "description": "A single-player open-city driving and pursuit game",
   "type": "module",

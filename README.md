@@ -8,7 +8,7 @@ A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthro
 
 ## Play on your computer
 
-1. [Download Neon Coast V17](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v17.0.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V18](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v18.0.0.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
@@ -38,6 +38,8 @@ Assaulting a civilian adds a wanted star. Separate meters track character and ve
 Hold Tab and press **3** to select **Bombardiro Crocodilo**. Release Tab and click a target. The winged crocodile flies straight and detonates on contact. Nearby pedestrians fall, a direct hit wrecks a civilian vehicle, and police vehicles are disabled for at least eight seconds. The launcher also works from a vehicle. The model is an original interpretation of the [crocodile-plane meme](https://knowyourmeme.com/memes/bombardiro-crocodilo-italian-brainrot).
 
 Hold **Tab**, press **4**, and release **Tab** to equip the **Chimpanzini Bananini** hammer. On foot, press **J** or click a nearby opponent to swing. The green chimp and curled banana peel form the mallet head. Each hit deals twice the damage of a punch, with a slower recovery between swings.
+
+Close the distance for a fistfight. Punches alternate hands and land at full extension. Face your opponent and hold **Space** to block. Heavy finishing blows knock opponents off their feet. A Crocodilo blast can send a nearby pedestrian tumbling or shove a moving wreck along the street. Solid scenery shields actors from splash damage.
 
 Traffic drivers have individual temperaments. Cautious drivers brake and honk when you stand in their lane. Aggressive drivers can knock you down. Press **E** near occupied traffic to pull the driver out. You stay on foot while the driver flees or confronts you. Press **E** again to take the car. With empty hands, click an opponent or press **J** to punch, or hold **Space** to block.
 

@@ -1,6 +1,7 @@
 import * as T from "three";
 import { insideCar, roadPosition, sweptContact } from "./traffic-contact.js";
-import { updatePedestrianImpact } from "./pedestrian-impact.js";
+import { beginBodyReaction, updatePedestrianImpact } from "./pedestrian-impact.js";
+import { slide, facingAttacker } from "./impact-motion.js";
 import { velocity } from "./crash.js";
 
 const clothes = ["#527887", "#b36c4b", "#667b57", "#85748a"],
@@ -21,6 +22,18 @@ export function createEncounters(
     trafficHits = 0,
     punches = 0,
     blockedPunches = 0;
+  const blastBody = {root:new T.Group(),arms:[],legs:[],behavior:"player"};
+  function blastPlayer(dx,dz,weight) {
+    if(weight < .025 || pulling) return;
+    blastBody.root.position.copy(world.person.position);
+    blastBody.root.rotation.set(0,player.a,0);
+    beginBodyReaction(blastBody,dx,dz,.5+8*weight,weight>.45 ? 2.4+2.8*weight : 0,
+      bodyBlocked,weight>.45 ? .62 : .13);
+    hurt(Math.max(1,Math.round(38*weight)), "CAUGHT IN THE BLAST");
+  }
+  const playerImpulse = {vx: 0, vz: 0};
+  const recoilAxis = new T.Vector3();
+  const recoilTilt = new T.Quaternion();
   const knockbackOffset = new T.Vector2();
   const seatShape = new T.SphereGeometry(1, 8, 6);
   const fabrics = clothes.map((color) => new T.MeshStandardMaterial({ color }));
@@ -248,13 +261,16 @@ export function createEncounters(
     n.z = n.root.position.z;
     n.health = Math.max(0,(n.health ?? 3) - (kind==="hammer"?2:1));
     n.flinch = kind==="hammer" ? .45 : .32;
-    n.wind = 0;
+    n.wind = n.followThrough = 0;
     n.cool = 0.46;
     n.rangeTime = 0;
     n.behavior =
       n.health <= 0 ? "defeated" : n.temper === "aggressive" ? "fight" : "flee";
-    if (n.behavior === "defeated") {
-      n.rest = 3.2;
+    const downed = n.health === 0;
+    const heavy = kind === "hammer";
+    beginBodyReaction(n, n.x - player.x, n.z - player.z, heavy ? 5 : 2.7,
+      downed ? 2.6 : 0, bodyBlocked, downed ? 3.1 : heavy ? .22 : .12);
+    if (downed) {
       notify("OPPONENT DOWN");
     }
   }
@@ -322,44 +338,45 @@ export function createEncounters(
       n.root.rotation.y = Math.atan2(-dx, -dz);
     };
     let stride = 0,
-      swing = 0,
+      swing = Math.min(1, (n.followThrough || 0) / .17),
       tilt = n.flinch * 0.9;
+    n.followThrough = Math.max(0, (n.followThrough || 0) - dt);
     if (n.behavior === "defeated") {
-      n.rest -= dt;
-      tilt = 1.43 * Math.min(1, (3.2 - n.rest) * 5, Math.max(0, n.rest) * 3);
-      if (n.rest <= 0) {
-        n.health = 3;
-        n.behavior = "flee";
-        n.rangeTime = 0;
-      }
+      n.health = 3;
+      n.behavior = "flee";
+      n.rangeTime = 0;
     } else if (n.behavior === "fight") {
       if (n.wind > 0) {
         n.wind = Math.max(0, n.wind - dt);
         face();
-        swing = Math.sin(Math.PI * (1 - n.wind / 0.32));
+        swing = Math.max(0, 1 - n.wind / .18);
         if (
           n.wind === 0 &&
           !inCar &&
-          dist < 1.95 &&
+          dist < 1.55 &&
           !down &&
           !wall((n.x + player.x) / 2, (n.z + player.z) / 2, 0.1)
         ) {
-          if (guarding) {
+          n.followThrough = .17;
+          if (guarding && facingAttacker(player.a, -dx, -dz)) {
             blockedPunches++;
             thump();
             notify("BLOCKED");
           } else {
             punches++;
             recoil = 0.24;
+            recoilAxis.set(dz,0,-dx).normalize();
+            playerImpulse.vx = 2.9 * dx / (dist || 1);
+            playerImpulse.vz = 2.9 * dz / (dist || 1);
             hurt(10, "PUNCHED · SPACE TO GUARD");
           }
           n.cool = 0.9;
         }
-      } else if (!n.flinch && !inCar && dist <= 1.55) {
+      } else if (!n.flinch && !inCar && dist <= 1.25) {
         face();
         if (!n.cool && !down) n.wind = 0.32;
-      } else if (!n.flinch && dist > 1.35 && dist < 24) {
-        stride = walk(n, dx, dz, Math.min(dt * 3.2, dist - 1.35)) ? 1 : 0;
+      } else if (!n.flinch && dist > 1.15 && dist < 24) {
+        stride = walk(n, dx, dz, Math.min(dt * 3.2, dist - 1.15)) ? 1 : 0;
       }
       if (dist >= 24) {
         n.behavior = "flee";
@@ -402,14 +419,24 @@ export function createEncounters(
     n.homeZ = n.z;
   }
   function step(dt, time, car, guard) {
+    if(blastBody.impact) {
+      updatePedestrianImpact(blastBody,dt,time,ground);
+      player.x=blastBody.root.position.x;player.z=blastBody.root.position.z;
+    }
+    if (!blastBody.impact && !car && !pulling && !down && recoil > 0) slide(player, playerImpulse, dt, 9, bodyBlocked);
     down = Math.max(0, down - dt);
     recoil = Math.max(0, recoil - dt);
-    guarding = guard && !car && !down && !pulling;
+    guarding = guard && !car && !down && !pulling && !blastBody.impact;
     for (const n of world.pedestrians)
       stepNpc(n, dt, time, car || player, !!car);
   }
   function pose() {
-    if (down) {
+    if(blastBody.impact){
+      world.person.position.copy(blastBody.root.position);
+      world.person.quaternion.copy(blastBody.root.quaternion);
+      const brace=(x)=>world.person.localToWorld(new T.Vector3(x,1.4,-.32));
+      world.characters.holdLauncher(brace(.26),brace(-.26));
+    } else if (down) {
       const t = 1 - down / 1.15,
         lean = Math.min(1, t * 8, (1 - t) * 4);
       const travel = Math.max(0, 1 - (1.15 - down) / 0.22) ** 2;
@@ -417,8 +444,10 @@ export function createEncounters(
       world.person.position.z += knockbackOffset.y * travel;
       world.person.rotateX(-1.38 * lean);
       world.person.position.y += 0.22 * lean;
-    } else if (recoil && !pulling && !guarding) {
-      world.person.rotateX(-0.25 * Math.sin((Math.PI * recoil) / 0.24));
+    } else if (recoil && !pulling) {
+      const lean=.32 * Math.sin((Math.PI * recoil) / .24);
+      recoilTilt.setFromAxisAngle(recoilAxis,lean);
+      world.person.quaternion.premultiply(recoilTilt);
     } else if (pulling) {
       const n = pulling.n;
       world.characters.reachRight(
@@ -433,11 +462,13 @@ export function createEncounters(
   function reset() {
     recoil = down = honks = trafficHits = punches = blockedPunches = 0;
     guarding = false;
+    blastBody.impact=null;
+    playerImpulse.vx = playerImpulse.vz = 0;
     pulling = null;
     for (const n of world.pedestrians) {
       n.health = 3;
       n.behavior = n.driver ? "seated" : null;
-      n.wind = n.flinch = n.hornTime = n.rangeTime = 0;
+      n.followThrough = n.wind = n.flinch = n.hornTime = n.rangeTime = 0;
       n.waiting = false;
       n.x = n.homeX;
       n.z = n.homeZ;
@@ -450,13 +481,14 @@ export function createEncounters(
     pose,
     reset,
     react,
+    blastPlayer,
     seated,
     pullDriver,
     syncSeat,
     bodyBlocked,
     updateTraffic,
     get busy() {
-      return down > 0 || !!pulling;
+      return down > 0 || !!pulling || !!blastBody.impact;
     },
     get guarding() {
       return guarding;

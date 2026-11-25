@@ -90,7 +90,10 @@ const weapons = createWeapons(world,(unit,kind)=>{
 },explosive=>{
   if(explosive){sound(125,.25,'sawtooth',.055);sound(205,.18,'triangle',.055,.08);return}
   for(const [i,hz] of [146,128,111].entries())sound(hz,.072,"triangle",.10,i*.07);
-},reportAssault,{blocked,dropBlock:blocks.drop,onWreck(){
+},reportAssault,{blocked,dropBlock:blocks.drop,
+  playerOnFoot:()=>started && !bust && !car ? person.position : null,
+  onPlayerBlast:encounters.blastPlayer,
+  onWreck(){
   if(!wanted){heat(1);toast("VEHICLE DESTROYED · DISPATCH ALERTED")}
 },onBoom(){
   sound(53,.38,'sawtooth',.14);sound(88,.19,'triangle',.17);sound(42,.36,'sine',.12,.09);
@@ -893,7 +896,7 @@ function tick(now) {
   if (started) {
     const sprinting = !car && (keys.ShiftLeft || keys.ShiftRight) &&
       (keys.KeyA || keys.KeyD || keys.KeyW || keys.KeyS || keys.ArrowLeft || keys.ArrowRight || keys.ArrowUp || keys.ArrowDown);
-    followCamera.update(dt, car || p, Boolean(car), sprinting, pointerId !== null, keys.KeyC);
+    followCamera.update(dt, car || p, Boolean(car), sprinting, pointerId !== null, keys.KeyC, weapons.framingMelee || encounters.guarding);
   } else {
     person.rotation.y = Math.PI;
     followCamera.showcase();

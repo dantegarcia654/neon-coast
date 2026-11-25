@@ -1,4 +1,5 @@
 import * as T from "three";
+import { slide } from "./impact-motion.js";
 const clamp = T.MathUtils.clamp;
 const smooth = (t) => {
   t = clamp(t, 0, 1);
@@ -35,9 +36,66 @@ export function beginPedestrianImpact(npc, vx, vz, blocked) {
   };
   npc.root.rotation.order = "YXZ";
 }
+// Use an airborne arc for hard hits and a planted-foot stagger for lighter contact.
+export function beginBodyReaction(npc, dx, dz, shove, lift, blocked, downTime = 0) {
+  npc.root.rotation.reorder("YXZ");
+  const p = npc.root.position;
+  const length = Math.hypot(dx, dz) || 1;
+  dx /= length;
+  dz /= length;
+  npc.impact = {
+    dynamic: true, hard: lift > 0, dx, dz, x: p.x, z: p.z, y: p.y,
+    vx: dx * shove, vz: dz * shove, vy: lift,
+    yaw: npc.impact?.yaw ?? npc.root.rotation.y,
+    tilt: lift ? 1.43 : Math.min(.58, .16 + shove * .075),
+    age: 0, groundedTime: 0, hold: downTime, blocked
+  };
+}
+
+function stepBodyReaction(npc, s, dt, time, ground) {
+  const steps = Math.max(1, Math.ceil(dt * 90));
+  const h = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    const airborne = s.vy > 0 || s.y > ground(s.x, s.z) + .012;
+    slide(s, s, h, airborne ? 1.45 : 7.5, (x, z) => s.blocked(x, z, .34));
+    const floor = ground(s.x, s.z);
+    s.y += s.vy * h - 9 * h * h;
+    s.vy -= 18 * h;
+    if (s.y <= floor) {
+      s.y = floor;
+      s.vy = 0;
+      s.groundedTime += h;
+    }
+    s.age += h;
+  }
+  const fall = smooth(s.age / (s.hard ? .28 : .11));
+  const rise = smooth((s.groundedTime - s.hold) / (s.hard ? .66 : .25));
+  const pose = fall * (1 - rise);
+  const brace = Math.sin(Math.PI * rise);
+  const root = npc.root;
+  root.position.set(s.x, s.y + pose * (s.hard ? .22 : .045), s.z);
+  axis.set(s.dz, 0, -s.dx);
+  tilt.setFromAxisAngle(axis, s.tilt * pose - brace * .12);
+  root.quaternion.setFromAxisAngle(up, s.yaw).premultiply(tilt);
+  for (let i = 0; i < npc.arms.length; i++) {
+    const side = i ? 1 : -1;
+    npc.arms[i].rotation.set(-.88 * pose + .72 * brace, 0, side * (.61 * pose + .2 * brace));
+    npc.legs[i].rotation.x = (i ? .56 : -.44) * pose - .72 * brace;
+  }
+  if (rise === 1) {
+    root.rotation.set(0, s.yaw, 0, "YXZ");
+    if (!npc.behavior) {
+      npc.walkOffsetX = s.x - (npc.x + Math.sin(time * .08 + npc.phase) * 8);
+      npc.walkOffsetZ = s.z - npc.z;
+    }
+    npc.impact = null;
+  }
+  return true;
+}
 export function updatePedestrianImpact(npc, dt, time, ground) {
   const s = npc.impact;
   if (!s) return false;
+  if (s.dynamic) return stepBodyReaction(npc, s, dt, time, ground);
   s.age += dt;
   const fall = s.hard ? 0.46 : 0.23,
     hold = s.hard ? 0.55 + 0.5 * s.power : 0.08,

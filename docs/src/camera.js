@@ -23,7 +23,7 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
   let roadView = false, interior = false, headYaw = 0, headPitch = 0;
   let preset = 0, radius = 4.6, clearance = 4.6, reverseView = 0;
   let shoulder = .38, lead = 0, wasDriving = false, firstFrame = true;
-  let focusHeight = 1.35, occluded = false;
+  let focusHeight = 1.35, occluded = false, fightAngle = 0;
   const menuFov = camera.fov;
 
   function clearDistance(start, unitDirection, length, subject) {
@@ -54,7 +54,7 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
     return available;
   }
 
-  function update(dt, subject, driving, sprinting, dragging, lookingBack) {
+  function update(dt, subject, driving, sprinting, dragging, lookingBack, fighting = false) {
     if (!dt) return;
     const speed = driving ? Math.min(Math.abs(subject.speed) / 40, 1) : 0;
     if (wasDriving !== driving) freeLookDelay = 0;
@@ -77,7 +77,12 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
     }
     pitch = damp(pitch, desiredPitch, 12, dt);
     reverseView = damp(reverseView, lookingBack ? Math.PI : 0, 12, dt);
-    const heading = yaw + reverseView;
+    // A slight side view separates the silhouettes without rotating walking controls.
+    const relative = angleDelta(subject.a, yaw);
+    const sideView = fighting && !driving && !dragging && !lookingBack && !freeLookDelay
+      ? (relative < -.03 ? -1 : 1) * Math.max(0,.96-Math.abs(relative)) : 0;
+    fightAngle = damp(fightAngle,sideView,sideView ? 11 : 4,dt);
+    const heading = yaw + reverseView + fightAngle;
     if (roadView) {
       // A forward view above the bumper keeps the horizon visible on bridge grades.
       const forwardX = -Math.sin(heading), forwardZ = -Math.cos(heading);
@@ -105,7 +110,8 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
     aim.x += Math.cos(heading) * shoulder - Math.sin(subject.a) * lead * Math.sign(subject.speed || 0);
     aim.z -= Math.sin(heading) * shoulder + Math.cos(subject.a) * lead * Math.sign(subject.speed || 0);
 
-    direction.set(Math.sin(heading) * Math.cos(pitch), Math.sin(pitch), Math.cos(heading) * Math.cos(pitch));
+    const elevation = pitch + Math.abs(fightAngle)*.14;
+    direction.set(Math.sin(heading)*Math.cos(elevation), Math.sin(elevation), Math.cos(heading)*Math.cos(elevation));
     // Clamp the camera above the local ground before testing the final boom.
     const endX = anchor.x + direction.x * radius, endZ = anchor.z + direction.z * radius;
     direction.y = Math.max(direction.y, (groundHeight(endX, endZ) + .35 - anchor.y) / radius);
@@ -143,7 +149,7 @@ export function createFollowCamera(camera, buildings, groundHeight, vehicles = [
   return {
     update,
     reset(){
-      yaw=headYaw=headPitch=reverseView=freeLookDelay=lead=preset=0;
+      fightAngle=yaw=headYaw=headPitch=reverseView=freeLookDelay=lead=preset=0;
       pitch=desiredPitch=.18;radius=clearance=4.6;focusHeight=1.35;shoulder=.38;
       roadView=interior=wasDriving=occluded=false;firstFrame=true;
       camera.fov=menuFov;camera.updateProjectionMatrix();

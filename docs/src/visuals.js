@@ -1045,9 +1045,9 @@ export function createWorld(canvas) {
       const front=groundHeight(c.x+forwardX*1.45,c.z+forwardZ*1.45);
       const back=groundHeight(c.x-forwardX*1.45,c.z-forwardZ*1.45);
       c.g.rotation.order="YXZ";
-      c.g.rotation.x=Math.atan2(front-back,2.9)+(c.crashPitch||0);
+      c.g.rotation.x=Math.atan2(front-back,2.9)+(c.crashPitch||0)+(c.blastPitch||0);
       const sideX=Math.cos(c.a)*.8,sideZ=-Math.sin(c.a)*.8;
-      c.g.rotation.z=(c.z < -176 ? Math.atan2(groundHeight(c.x+sideX,c.z+sideZ)-groundHeight(c.x-sideX,c.z-sideZ),1.6) : 0)+(c.crashRoll||0);
+      c.g.rotation.z=(c.z < -176 ? Math.atan2(groundHeight(c.x+sideX,c.z+sideZ)-groundHeight(c.x-sideX,c.z-sideZ),1.6) : 0)+(c.crashRoll||0)+(c.blastRoll||0);
     }
     player.arms[0].rotation.x = -legs[0].rotation.x * 0.75;
     player.arms[1].rotation.x = -legs[1].rotation.x * 0.75;

@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {updatePedestrianImpact} from './pedestrian-impact.js';
 import {makeLauncher} from './sahur.js';
 
 export function createFootPatrol(world,cruisers){
@@ -21,12 +22,14 @@ export function createFootPatrol(world,cruisers){
     const muzzle=new T.Object3D();muzzle.position.copy(launcher.mouth);gun.add(muzzle);
     arms[0].rotation.set(1.04,0,-.35);arms[1].rotation.set(.94,0,.16);
     root.visible=false;world.scene.add(root);
-    return {g:root,cruiser,legs,muzzle,police:true,active:false,x:0,z:0,a:0,
+    return {g:root,root,arms,cruiser,legs,muzzle,police:true,active:false,x:0,z:0,a:0,
       speed:0,snackTime:0,stride:i,model:'Foot officer'};
   });
   function dismiss(u){
     if(!u.active)return;
     u.cruiser.snackTime=Math.max(u.cruiser.snackTime||0,u.snackTime);
+    u.impact=null;u.g.rotation.set(0,u.a,0);
+    u.arms[0].rotation.set(1.04,0,-.35);u.arms[1].rotation.set(.94,0,.16);
     u.active=u.g.visible=false;u.snackTime=0;u.speed=0;
   }
   function deploy(target,count,allowed,blocked,canSee){
@@ -44,6 +47,12 @@ export function createFootPatrol(world,cruisers){
     }
   }
   function update(u,goal,seen,target,stars,dt,blocked){
+    if(u.impact){
+      updatePedestrianImpact(u,dt,0,world.getGroundHeight);
+      u.x=u.g.position.x;u.z=u.g.position.z;u.speed=0;
+      if(!u.impact){u.arms[0].rotation.set(1.04,0,-.35);u.arms[1].rotation.set(.94,0,.16);}
+      return false;
+    }
     let dx=goal.x-u.x,dz=goal.z-u.z,dist=Math.hypot(dx,dz);
     if(!u.snackTime && dist>.001){
       const hold=seen?(dist<2.5?1.15:7):.45;
