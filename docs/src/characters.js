@@ -143,6 +143,7 @@ export function createCharacterSystem(container, fallback) {
         reach(i===0?'left':'right',c.g.localToWorld(grip));
       }
     },
+    handPosition(out){return active?.right?.getWorldPosition(out)},
     shoulderPosition(out){return active?.right?.parent?.parent?.getWorldPosition(out)},
     reachRight(target){reach("right",target)},
     holdLauncher(right,left){reach("right",right);reach("left",left)},

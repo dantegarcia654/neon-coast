@@ -59,7 +59,11 @@ let assaultCount=0,lastAssault=null;
 function reportAssault(victim,kind){
   if(!started||bust)return;
   if(!victim.police && kind!=='vehicle')victim.startled=.85;
-  if(kind==="strike"){encounters.react(victim,kind);sound(94,.10,"triangle",.09)}
+  if(kind==="strike"||kind==="hammer"){
+    if(!victim.police)encounters.react(victim,kind);
+    if(kind==="hammer"){sound(66,.19,'triangle',.14);sound(164,.075,'sine',.07);}
+    else sound(94,.10,"triangle",.09);
+  }
   assaultCount++;lastAssault=kind;
   const actor=car||p,lead=streetCops[0];
   if(!wanted && !lead.snackTime && Math.hypot(actor.x-lead.x,actor.z-lead.z)>48){
@@ -301,6 +305,7 @@ addEventListener("keydown", (e) => {
     if(["ArrowLeft","Digit1"].includes(e.code))wheel.select(0);
     if(["ArrowRight","Digit2"].includes(e.code))wheel.select(1);
     if(["ArrowUp","Digit3"].includes(e.code))wheel.select(2);
+    if(["ArrowDown","Digit4"].includes(e.code))wheel.select(3);
     if(e.code==="Escape")wheel.close(false);
     if(e.code==="Enter")wheel.close();
     return;
@@ -317,7 +322,7 @@ addEventListener("keydown", (e) => {
     toast(followCamera.toggleInterior() ? "DRIVER SEAT" : "EXTERIOR VIEW");
   }
   if (e.code === "KeyV" && started && !paused) toast(followCamera.cycle().toUpperCase() + " CAMERA");
-  if (e.code === "KeyJ" && !car && !wheel.armed && !encounters.busy && !keys.Space)weapons.punch(p);
+  if (e.code === "KeyJ" && !car && wheel.melee && !encounters.busy && !(keys.Space&&!wheel.armed))weapons.punch(p);
   if (e.code === "KeyE") interact();
   if (e.code === "KeyR") recover();
   if (e.code === "Escape" && started) {
@@ -937,7 +942,7 @@ function tick(now) {
   if(transport.flight(car))$("#flight-alt").textContent=Math.round(Math.max(0,car.y-transport.floor(car.x,car.z)))+" m";
   weapons.update(dt,car||p,car,Boolean(car&&followCamera.interior),started && !bust,encounters.busy);
   $("#weapon-hint").hidden=!started||paused||wheel.active||!wheel.armed||Boolean(bust);
-  canvas.classList.toggle("serving",started&&wheel.armed&&!paused&&!wheel.active);
+  canvas.classList.toggle("serving",started&&wheel.armed&&!wheel.hammer&&!paused&&!wheel.active);
   if(started&&!car)encounters.pose();
   world.render();
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Neon Coast — Open City</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23d3ffa1%27/%3E%3Ctext x=%278%27 y=%2745%27 font-size=%2736%27 font-family=%27sans-serif%27 font-weight=%27bold%27 fill=%27%23122a2d%27%3ENC%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./style.css?v=15" />
+    <link rel="stylesheet" href="./style.css?v=17" />
   </head>
   <body class="menu-open">
     <canvas id="world" tabindex="-1"></canvas>
@@ -27,9 +27,10 @@
           <button data-slot="0" aria-label="Unarmed"><span class="palm" aria-hidden="true">✋</span><small>Unarmed</small></button>
           <button data-slot="1" aria-label="The Meat Rocket hot-dog launcher"><img alt=""><small>The Meat Rocket</small></button>
           <button data-slot="2" aria-label="Bombardiro Crocodilo"><img alt=""><small>Bombardiro Crocodilo</small></button>
+          <button data-slot="3" aria-label="Chimpanzini Bananini hammer"><img alt=""><small>Bananini Hammer</small></button>
           <span class="wheel-hub" aria-hidden="true">NC</span>
         </div>
-        <div class="wheel-caption"><h2></h2><p></p><small>Move or press 1–3 <i>·</i> Release Tab to equip</small></div>
+        <div class="wheel-caption"><h2></h2><p></p><small>Move or press 1–4 <i>·</i> Release Tab to equip</small></div>
       </div>
     </div>
     <div id="flight-controls" hidden><b id="flight-alt"></b> AGL &nbsp; · &nbsp; Q climb &nbsp; Z descend</div>
@@ -56,7 +57,7 @@
       ><span><kbd>SPACE</kbd> GUARD / HANDBRAKE</span
       ><span><kbd>SHIFT</kbd> SPRINT</span><span><kbd>R</kbd> RECOVER</span
       ><span><kbd>F</kbd> DRIVER SEAT</span><span><kbd>V</kbd> VIEW</span><span><kbd>C</kbd> LOOK BACK</span>
-      <span><kbd>J</kbd> PUNCH</span><span><kbd>TAB</kbd> WEAPON WHEEL</span><span><kbd>ESC</kbd> PAUSE</span>
+      <span><kbd>J</kbd> MELEE</span><span><kbd>TAB</kbd> WEAPON WHEEL</span><span><kbd>ESC</kbd> PAUSE</span>
     </footer>
     <div id="intro">
       <div class="intro-card">
@@ -89,7 +90,9 @@
           "three": "./vendor/three.module.js",
           "./src/impact-surfaces.js": "./src/impact-surfaces.js?v=15",
           "./src/sahur.js": "./src/sahur.js?v=15",
-          "./src/weapons.js": "./src/weapons.js?v=16",
+          "./src/characters.js": "./src/characters.js?v=17",
+          "./src/encounters.js": "./src/encounters.js?v=17",
+          "./src/weapons.js": "./src/weapons.js?v=17",
           "three/addons/": "./vendor/addons/",
           "./src/assault.js": "./src/assault.js?v=14",
           "./src/transport.js": "./src/transport.js?v=14",
@@ -97,6 +100,6 @@
         }
       }
     </script>
-    <script type="module" src="./src/main.js?v=16"></script>
+    <script type="module" src="./src/main.js?v=17"></script>
   </body>
 </html>

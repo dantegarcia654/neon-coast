@@ -1,3 +1,4 @@
+import {createBananaHammer,hammerName,hammerPose,hammerSwing} from './bananini.js';
 import {crocName,crocLauncher,spinProps} from './crocodilo.js';
 import {createBlasts} from './blast.js';
 import {createPoliceRockets} from './police-rockets.js';
@@ -8,17 +9,18 @@ import {createImpactSurfaces} from './impact-surfaces.js';
 import {createSauce} from './sauce.js';
 import {makeHotdog, makeLauncher, launcherPortrait} from './sahur.js';
 
-export function createWeaponWheel(portrait,crocPortrait) {
+export function createWeaponWheel(portrait,crocPortrait,hammerPortrait) {
   const overlay=document.querySelector('#weapon-wheel'), slots=[...overlay.querySelectorAll('[data-slot]')];
   const title=overlay.querySelector('h2'),desc=overlay.querySelector('p');
-  const names=['Unarmed','The Meat Rocket',crocName], descriptions=['Click a nearby person to strike','Hot-dog launcher  ·  Unlimited servings','Propeller rocket · Explodes on impact'];
+  const names=['Unarmed','The Meat Rocket',crocName,hammerName], descriptions=['Click a nearby person to strike','Hot-dog launcher  ·  Unlimited servings','Propeller rocket · Explodes on impact','Banana mallet · Double punch damage'];
   let equipped=0,selected=0;
   slots[1].querySelector('img').src=portrait;
   slots[2].querySelector('img').src=crocPortrait;
+  slots[3].querySelector('img').src=hammerPortrait;
   const hint=document.querySelector('#weapon-hint');
   function updateHint(){
     hint.querySelector('b').textContent=names[equipped];
-    hint.querySelector('span').textContent=equipped===2?'Click to launch · Drag to look':'Click to serve · Drag to look';
+    hint.querySelector('span').textContent=equipped===3?'Click or J to swing · On foot':equipped===2?'Click to launch · Drag to look':'Click to serve · Drag to look';
   }
   function select(i){
     selected=i;title.textContent=names[i];desc.textContent=descriptions[i];
@@ -26,19 +28,21 @@ export function createWeaponWheel(portrait,crocPortrait) {
   }
   function close(commit=true){if(overlay.hidden)return;if(commit){equipped=selected;updateHint()}overlay.hidden=true;}
   for(const [i,b] of slots.entries()){
-    b.addEventListener('pointerenter',()=>select(i));
     b.addEventListener('click',()=>{select(i);close()});
   }
   overlay.addEventListener('pointermove',e=>{
+    // Opening the wheel under a stationary cursor can produce a boundary event.
+    // Only deliberate motion should override a number-key selection.
+    if(e.pointerType==='mouse' && !e.movementX && !e.movementY)return;
     const disc=overlay.querySelector('.weapon-disc').getBoundingClientRect();
     const dx=e.clientX-disc.left-disc.width/2,dy=e.clientY-disc.top-disc.height/2;
-    if(Math.hypot(dx,dy)>disc.width*.09)select(dy<-Math.abs(dx)/Math.sqrt(3)?2:dx<0?0:1);
+    if(Math.hypot(dx,dy)>disc.width*.09)select(Math.abs(dx)>Math.abs(dy)?(dx<0?0:1):(dy<0?2:3));
   });
   return {configure(name,description,img){
     names[1]=name;descriptions[1]=description;slots[1].setAttribute('aria-label',name+' launcher');slots[1].querySelector('small').textContent=name;
     slots[1].querySelector('img').src=img;updateHint();select(selected);
   },reset(){close(false);equipped=0;select(0)},open(){if(overlay.hidden){select(equipped);overlay.hidden=false}},close,select,
-    get active(){return !overlay.hidden},get armed(){return equipped!==0},get equipped(){return equipped}};
+    get active(){return !overlay.hidden},get armed(){return equipped!==0},get melee(){return equipped===0||equipped===3},get hammer(){return equipped===3},get equipped(){return equipped}};
 }
 
 export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
@@ -46,7 +50,11 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
   const meat=makeLauncher(),croc=crocLauncher(),images=new Map(),variants=new Map([[crocName,croc],['The Meat Rocket',meat],['Tralalero Splash',craftLauncher(true)],['Crocodilo Cannoli',craftLauncher(false)]]);
   let {model,load,mouth}=meat, weaponName='The Meat Rocket';
   images.set(weaponName,launcherPortrait(renderer,model));
-  const wheel=createWeaponWheel(images.get(weaponName),launcherPortrait(renderer,croc.model));
+  const hammer=createBananaHammer(),preview=new T.Group();
+  preview.userData.portraitView=[.82,.7,2.7];
+  const prop=hammer.clone();prop.rotation.z=-.42;prop.position.set(-.11,-.15,0);preview.add(prop);
+  const wheel=createWeaponWheel(images.get(weaponName),launcherPortrait(renderer,croc.model),launcherPortrait(renderer,preview));
+  scene.add(hammer);hammer.visible=false;
   for(const v of variants.values()){scene.add(v.model);v.model.visible=false}
   let primaryName='The Meat Rocket',propTime=0;
   function loadout(car){
@@ -112,8 +120,10 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     return ray.at(hit.distance,new T.Vector3());
   }
   function place(actor,car,interior){
-    model.visible=wheel.armed&&!interior;
+    hammer.visible=wheel.hammer&&!car;
+    model.visible=wheel.armed&&!wheel.hammer&&!interior;
     mount.visible=model.visible&&Boolean(car);
+    if(wheel.hammer){if(!car)hammerPose(hammer,world,swingAge,handOffset,leftGrip);return;}
     if(!wheel.armed)return;
     const dest=targetPoint(car);
     if(car){
@@ -144,21 +154,20 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     document.body.append(flag);tags.push({flag,c});
 
   }
-  let strikeTime=0;
+  let strikeTime=0,swingAge=-1,swings=0,hammerHits=0,pendingContact=null;
   const strikePoint=new T.Vector3();
-  function strike(actor,autoAim=false){
-    if(cooldown>0||wheel.active||wheel.armed)return;
+  function findStrikeTarget(actor,autoAim,limit){
     pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.18,actor.z);
     let target=null;
     if(autoAim){
-      let nearest=2.04;
+      let nearest=limit;
       for(const n of [...world.pedestrians,...world.footOfficers]){
         const root=n.root||n.g;
         if(!root.visible||n.behavior==='defeated'||n.behavior==='exiting')continue;
         const dx=root.position.x-actor.x,dz=root.position.z-actor.z,d=Math.hypot(dx,dz);
         if(d>=nearest||-dx*Math.sin(actor.a)-dz*Math.cos(actor.a)<-.12*d)continue;
         const torso=root.position.clone();torso.y+=1.2;
-        delta.subVectors(torso,pos);const reach=delta.length();if(reach>2.08)continue;
+        delta.subVectors(torso,pos);const reach=delta.length();if(reach>limit+.04)continue;
         const h=surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.2);
         if(h && (h.civilian===n||h.vehicle===n)){target=h;nearest=d;}
       }
@@ -167,11 +176,24 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
       const h=surfaces.cast(cast.ray,100);
       if(h?.civilian||h?.kind==='officer'){
         delta.subVectors(h.point,pos);const reach=delta.length();
-        if(reach<=2.04){
+        if(reach<=limit){
           const contact=surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.08);
           if(contact && contact.civilian===h.civilian && contact.vehicle===h.vehicle)target=h;
         }
       }
+    }
+    return target;
+  }
+  function strike(actor,autoAim=false){
+    if(cooldown>0||wheel.active||!wheel.melee)return;
+    const target=findStrikeTarget(actor,autoAim,wheel.hammer?hammerSwing.reach:2.04);
+    if(wheel.hammer){
+      swingAge=0;swings++;cooldown=hammerSwing.cooldown;pendingContact=null;
+      if(target){
+        actor.a=Math.atan2(actor.x-target.point.x,actor.z-target.point.z);
+        pendingContact={target,local:target.mesh.worldToLocal(target.point.clone())};
+      }
+      return;
     }
     cooldown=.46;strikeTime=.28;
     strikePoint.set(actor.x-Math.sin(actor.a)*.95,pos.y+.19,actor.z-Math.cos(actor.a)*.95);
@@ -181,7 +203,7 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     else if(target.kind==='officer')tag(target.vehicle,'strike');
   }
   function fire(actor,car,interior){
-    if(!wheel.armed&&!car){strike(actor);return}
+    if(wheel.melee){if(!car)strike(actor);return}
     if(!wheel.armed||wheel.active||cooldown>0)return;
     loadout(car);place(actor,car,interior);
     const explosive=weaponName===crocName;
@@ -200,9 +222,32 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     scene.add(m);shots.push({m,explosive,origin,end:dest,age:0,duration,arc:explosive?0:Math.min(1.6,distance*.047),skip:car,tracked,localHit});
     shotsFired++;cooldown=explosive?1.15:.33;kick=1;onLaunch(explosive);
   }
+  function stepHammer(dt,actor,canSwing){
+    if(!canSwing){swingAge=-1;pendingContact=null;return;}
+    if(swingAge<0)return;
+    swingAge+=dt;
+    if(swingAge>=hammerSwing.contact && pendingContact){
+      const {target,local}=pendingContact;pendingContact=null;
+      const victim=target.civilian||target.vehicle;
+      const root=victim.root||victim.g;
+      if(root.visible&&victim.behavior!=='defeated'&&victim.behavior!=='exiting'){
+        pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.18,actor.z);
+        target.mesh.localToWorld(point.copy(local));delta.subVectors(point,pos);
+        const reach=delta.length(),contact=reach<=hammerSwing.reach+.07 &&
+          surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.12);
+        if(contact&&(contact.civilian===victim||contact.vehicle===victim)){
+          if(target.civilian)onAssault(victim,'hammer');
+          else {tag(victim,'hammer');victim.snackTime=Math.max(victim.snackTime,12);}
+          hammerHits++;
+        }
+      }
+    }
+    if(swingAge>=hammerSwing.duration)swingAge=-1;
+  }
   function update(dt,actor,car,interior,live,handsBusy=false){
+    stepHammer(dt,actor,wheel.hammer&&live&&!car&&!handsBusy);
     loadout(car);propTime+=dt;if(wheel.equipped===2)spinProps(model,propTime);cooldown=Math.max(0,cooldown-dt);kick=Math.max(0,kick-dt*6);
-    if(live&&!handsBusy)place(actor,car,interior);else model.visible=mount.visible=false;
+    if(live&&!handsBusy)place(actor,car,interior);else hammer.visible=model.visible=mount.visible=false;
     if(strikeTime>0){
       strikeTime=Math.max(0,strikeTime-dt);
       if(live&&!handsBusy&&!car&&!wheel.armed && world.characters.shoulderPosition(pos)){
@@ -235,10 +280,11 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
   }
   function reset(){
     for(const s of shots)scene.remove(s.m);
+    swingAge=-1;pendingContact=null;swings=hammerHits=0;hammer.visible=false;
     blasts.reset();sauce.reset();policeRockets.reset();
     for(const t of tags)t.flag.remove();
     shots.length=tags.length=shotsFired=hits=0;cooldown=kick=strikeTime=0;wheel.reset();
     for(const c of cops)c.snackTime=0;
   }
-  return {policeRockets,wheel,setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.armed?weaponName:null,equipped:wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
+  return {policeRockets,wheel,setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.hammer?hammerName:wheel.armed?weaponName:null,hammer:{visible:hammer.visible,swings,hits:hammerHits,swinging:swingAge>=0},equipped:wheel.hammer?'bananini':wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
 }

@@ -238,7 +238,7 @@ export function createEncounters(
   }
   function react(n, kind) {
     if (
-      kind !== "strike" ||
+      (kind !== "strike" && kind !== "hammer") ||
       n.behavior === "seated" ||
       n.behavior === "exiting" ||
       n.behavior === "defeated"
@@ -246,8 +246,8 @@ export function createEncounters(
       return;
     n.x = n.root.position.x;
     n.z = n.root.position.z;
-    n.health = (n.health ?? 3) - 1;
-    n.flinch = 0.32;
+    n.health = Math.max(0,(n.health ?? 3) - (kind==="hammer"?2:1));
+    n.flinch = kind==="hammer" ? .45 : .32;
     n.wind = 0;
     n.cool = 0.46;
     n.rangeTime = 0;
