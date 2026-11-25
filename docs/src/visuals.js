@@ -1014,12 +1014,12 @@ export function createWorld(canvas) {
     const footSpeed=Math.hypot(p.x-lastFootX,p.z-lastFootZ)/Math.max(dt,.001);lastFootX=p.x;lastFootZ=p.z;
     characters.update(dt,started&&!car?footSpeed:0,!!car,!started);
     const target = car || p;
-    const elevation=target.spec?.special?target.y:groundHeight(target.x,target.z);
+    const elevation=target.stunt||target.spec?.special?target.y:groundHeight(target.x,target.z);
     scene.fog.density=THREE.MathUtils.damp(scene.fog.density,target.z < -176 ? .0022 : .0025,2,dt);
     sun.target.position.set(target.x, elevation, target.z);
     sun.position.set(target.x - 60, elevation+85, target.z - 60);
     for (const c of [...cars, ...cops]) {
-      if(c.spec?.special)continue;
+      if(c.stunt||c.spec?.special)continue;
       for (const wheel of c.wheels) wheel.rotation.x -= (c.speed * dt) / 0.45;
       const forwardX=-Math.sin(c.a),forwardZ=-Math.cos(c.a);
       const front=groundHeight(c.x+forwardX*1.45,c.z+forwardZ*1.45);

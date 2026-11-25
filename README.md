@@ -64,3 +64,11 @@ Neon Coast is an independent, AI-assisted prototype. See the [asset credits](CRE
 ### Fartaculous encounter (feature branch)
 
 Leave **Fartaculous monster chase** checked on the start screen to meet the giant green-and-yellow, double-butt monster. He chases you, turns around to wind up, then releases two gas clouds and summons Diarrhea Pookie. Sprint clear of the clouds or get into a vehicle for protection. Existing melee and launcher hits can defeat both monsters. Turn the checkbox off for an ordinary session.
+
+### Ocean stunt roads and Cactus Crossing (feature branch)
+
+Choose **Free Roam → Start location → Ocean stunt road**, then enter Free Roam. The gateway also connects to the east end of the city's northern waterfront avenue (x 164, z −144).
+
+Hold **W** to accelerate, **S / Space** to brake, and **A / D** to move across the magnetic road. Before the fork, use **1** for Tidal Slalom (weaving bends and boost strips), **2** for Sky Loop (a full vertical loop), or **3** for Corkscrew Run (a twisting barrel-roll road). Magnetic grip keeps the vehicle attached through inverted sections. All three branches merge at a desert island with cacti, colorful houses, a plaza, festival flags, and a stepped sun tower: **Cactus Crossing**.
+
+At the island, normal driving resumes. Slow down and press **E** to explore on foot. Get back into a car and press **R** to return to the fork and try another route. The route HUD tracks which branches you've completed. Exotic aircraft and boats use their existing launch locations; the stunt start requires a road car.
