@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {updatePedestrianImpact} from './pedestrian-impact.js';
+import {updatePedestrianImpact,clearBodyPose} from './pedestrian-impact.js';
 import {makeLauncher} from './sahur.js';
 
 export function createFootPatrol(world,cruisers){
@@ -11,7 +11,7 @@ export function createFootPatrol(world,cruisers){
     const mesh=new T.Mesh(geometry,material);mesh.position.set(x,y,z);root.add(mesh);return mesh;
   }
   const officers=cruisers.map((cruiser,i)=>{
-    const {root,legs,arms}=world.makeHuman('#304964',['#ab795c','#794f39','#d6a785'][i%3]);
+    const {root,legs,arms,rig}=world.makeHuman('#304964',['#ab795c','#794f39','#d6a785'][i%3]);
     part(root,new T.CylinderGeometry(.16,.17,.1,12),navy,0,2,0);
     part(root,new T.BoxGeometry(.26,.026,.14),black,0,1.96,-.14);
     part(root,new T.BoxGeometry(.4,.09,.33),black,0,1.04,0);
@@ -20,15 +20,18 @@ export function createFootPatrol(world,cruisers){
     const gun=launcher.model.clone(true);
     gun.position.set(.19,1.16,-.36);gun.scale.setScalar(.68);root.add(gun);
     const muzzle=new T.Object3D();muzzle.position.copy(launcher.mouth);gun.add(muzzle);
+    root.updateMatrixWorld(true);
+    for(const part of [...root.children]) if(part.isMesh && part.position.y>1.69) rig.neck.attach(part);
+    rig.torso.attach(gun);
     arms[0].rotation.set(1.04,0,-.35);arms[1].rotation.set(.94,0,.16);
     root.visible=false;world.scene.add(root);
-    return {g:root,root,arms,cruiser,legs,muzzle,police:true,active:false,x:0,z:0,a:0,
+    return {g:root,root,arms,rig,cruiser,legs,muzzle,police:true,active:false,x:0,z:0,a:0,
       speed:0,snackTime:0,stride:i,model:'Foot officer'};
   });
   function dismiss(u){
     if(!u.active)return;
     u.cruiser.snackTime=Math.max(u.cruiser.snackTime||0,u.snackTime);
-    u.impact=null;u.g.rotation.set(0,u.a,0);
+    clearBodyPose(u);u.g.rotation.set(0,u.a,0);
     u.arms[0].rotation.set(1.04,0,-.35);u.arms[1].rotation.set(.94,0,.16);
     u.active=u.g.visible=false;u.snackTime=0;u.speed=0;
   }

@@ -64,7 +64,9 @@ export function createCharacterSystem(container, fallback) {
       if (!walkClip) throw new Error('Character has no walking animation');
       const idleClip = THREE.AnimationClip.parse(idleJSON);
       const seatedLegs=['Left','Right'].map(side=>[model.getObjectByName(side+'UpLeg'),model.getObjectByName(side+'Leg'),model.getObjectByName(side+'Foot')]);
-      const record = {def,root,model,mixer,seatedLegs,hips:model.getObjectByName('Hips'),right:model.getObjectByName('RightHand'),left:model.getObjectByName('LeftHand'),walk:mixer.clipAction(walkClip),idle:mixer.clipAction(idleClip),movingWeight:0,animations:[walkClip.name,idleClip.name]};
+      const neck=model.getObjectByName('Neck'),head=model.getObjectByName('Head');
+      const spine=model.getObjectByName('Spine'),chest=model.getObjectByName('Spine2') || neck;
+      const record = {def,root,model,mixer,seatedLegs,spine,chest,neck,head,hips:model.getObjectByName('Hips'),right:model.getObjectByName('RightHand'),left:model.getObjectByName('LeftHand'),walk:mixer.clipAction(walkClip),idle:mixer.clipAction(idleClip),movingWeight:0,animations:[walkClip.name,idleClip.name]};
       records.set(def.id,record);
       return record;
     } catch (error) {
@@ -90,6 +92,7 @@ export function createCharacterSystem(container, fallback) {
   const shoulder=new THREE.Vector3(),elbow=new THREE.Vector3(),wrist=new THREE.Vector3();
   const axis=new THREE.Vector3(),bend=new THREE.Vector3(),joint=new THREE.Vector3();
   const from=new THREE.Vector3(),to=new THREE.Vector3(),q=new THREE.Quaternion(),parentQ=new THREE.Quaternion();
+  const retargetFrom=new THREE.Vector3(),retargetTo=new THREE.Vector3();
   function pointBone(bone,child,end){
     if(!previousPose.has(bone))previousPose.set(bone,bone.quaternion.clone());
     bone.getWorldPosition(from);child.getWorldPosition(to);
@@ -141,6 +144,29 @@ export function createCharacterSystem(container, fallback) {
           c.spec.kind==='scooter'?aim.set(side*.33,1.20,-.39):
           aim.copy(seat).add(new THREE.Vector3(side*.25,.34,-.46));
         reach(i===0?'left':'right',c.g.localToWorld(grip));
+      }
+    },
+    fallPose(body){
+      if(!active || !body.rig)return;
+      body.root.updateWorldMatrix(true,true);
+      // Transfer segment directions so both player models retain their bone lengths.
+      function align(bone,child,start,end){
+        if(!bone||!child||!start||!end)return;
+        const target=retargetTo.setFromMatrixPosition(end.matrixWorld);
+        const origin=retargetFrom.setFromMatrixPosition(start.matrixWorld);
+        target.sub(origin).add(bone.getWorldPosition(origin));
+        pointBone(bone,child,target);
+      }
+      const {rig}=body;
+      align(active.spine,active.chest,rig.torso,rig.neck);
+      align(active.neck,active.head,rig.neck,rig.head);
+      for(const [i,side] of ['left','right'].entries()){
+        const hand=active[side],forearm=hand?.parent;
+        const [thigh,shin,foot]=active.seatedLegs[i];
+        align(forearm?.parent,forearm,body.arms[i],rig.elbows[i]);
+        align(forearm,hand,rig.elbows[i],rig.hands[i]);
+        align(thigh,shin,body.legs[i],rig.knees[i]);
+        align(shin,foot,rig.knees[i],rig.feet[i]);
       }
     },
     handPosition(out){return active?.right?.getWorldPosition(out)},

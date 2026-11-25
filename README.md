@@ -8,7 +8,7 @@ A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthro
 
 ## Play on your computer
 
-1. [Download Neon Coast V18](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v18.0.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V19](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v19.0.0.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
@@ -43,7 +43,7 @@ Close the distance for a fistfight. Punches alternate hands and land at full ext
 
 Traffic drivers have individual temperaments. Cautious drivers brake and honk when you stand in their lane. Aggressive drivers can knock you down. Press **E** near occupied traffic to pull the driver out. You stay on foot while the driver flees or confronts you. Press **E** again to take the car. With empty hands, click an opponent or press **J** to punch, or hold **Space** to block.
 
-A light vehicle hit makes a pedestrian stumble. A faster hit knocks them off balance, carries them away from the bumper, and gives them time to get back on their feet. Cars slide along walls on a glancing impact. A square hit transfers more momentum and costs more vehicle health.
+A finishing punch buckles the opponent's knees. A bumper sweeps the legs and carries the body along the road. A close explosion lifts the whole figure and sends the limbs outward. The ground supports the head and torso as the elbows, hands, knees and feet settle. Another car can redirect someone who is already down. Cars slide along walls on a glancing impact. A square hit transfers more momentum and costs more vehicle health.
 
 ## Run or edit the source
 

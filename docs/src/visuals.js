@@ -942,58 +942,38 @@ export function createWorld(canvas) {
         false,
       );
     }
-    capsule(0.18, 0.3, cloth, 0, 1.2, 0);
-    roundBox(0.48, 0.3, 0.33, cloth, 0, 1.37, 0, root);
-    capsule(0.12, 0.09, skinMat, 0, 1.62, 0);
-    const head = mesh(
-      new THREE.SphereGeometry(0.145, 12, 10),
-      skinMat,
-      0,
-      1.85,
-      0,
-      root,
-      false,
-    );
-    head.scale.set(0.83, 1.17, 0.92);
-    const hair = mesh(
-      new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62),
-      material("#252320"),
-      0,
-      1.9,
-      0.015,
-      root,
-      false,
-    );
-    for (const x of [-0.06, 0.06])
-      mesh(
-        new THREE.SphereGeometry(0.016, 6, 5),
-        material("#242527"),
-        x,
-        1.87,
-        -0.155,
-        root,
-        false,
-      );
-    capsule(0.03, 0.045, skinMat, 0, 1.83, -0.17);
-    const legs = [],
-      arms = [];
-    for (const x of [-0.15, 0.15]) {
-      const pivot = new THREE.Group();
-      pivot.position.set(x, 0.95, 0);
-      root.add(pivot);
-      capsule(0.105, 0.54, denim, 0, -0.36, 0, pivot);
-      roundBox(0.21, 0.14, 0.37, material("#363333"), 0, -0.82, -0.065, pivot);
-      legs.push(pivot);
-      const arm = new THREE.Group();
-      arm.position.set(Math.sign(x) * 0.31, 1.45, 0);
-      root.add(arm);
-      capsule(0.09, 0.24, cloth, 0, -0.16, 0, arm);
-      capsule(0.065, 0.28, skinMat, 0, -0.45, 0, arm);
-      capsule(0.072, 0.02, skinMat, 0, -0.65, 0, arm);
-      arms.push(arm);
+    function joint(parent,x,y,z) {
+      const pivot=new THREE.Group();
+      pivot.position.set(x,y,z);parent.add(pivot);
+      return pivot;
     }
-    batchGroup(root);
-    return { root, legs, arms };
+    const torso=joint(root,0,.97,0), neck=joint(torso,0,.65,0);
+    capsule(.18,.30,cloth,0,.23,0,torso);
+    roundBox(.48,.30,.33,cloth,0,.40,0,torso);
+    capsule(.12,.09,skinMat,0,0,0,neck);
+    const head=mesh(new THREE.SphereGeometry(.145,12,10),skinMat,0,.23,0,neck,false);
+    head.scale.set(.83,1.17,.92);
+    mesh(new THREE.SphereGeometry(.15,12,8,0,Math.PI*2,0,Math.PI*.62),
+      material("#252320"),0,.28,.015,neck,false);
+    for(const x of [-.06,.06]) mesh(new THREE.SphereGeometry(.016,6,5),
+      material("#242527"),x,.25,-.155,neck,false);
+    capsule(.03,.045,skinMat,0,.21,-.17,neck);
+    const legs=[], arms=[], knees=[], elbows=[], feet=[], hands=[];
+    for(const x of [-.15,.15]){
+      const thigh=joint(root,x,.95,0), knee=joint(thigh,0,-.41,0);
+      capsule(.105,.23,denim,0,-.21,0,thigh);
+      capsule(.094,.23,denim,0,-.19,0,knee);
+      feet.push(roundBox(.21,.14,.37,material("#363333"),0,-.41,-.065,knee));
+      const arm=joint(torso,Math.sign(x)*.31,.48,0), elbow=joint(arm,0,-.31,0);
+      capsule(.09,.18,cloth,0,-.15,0,arm);
+      capsule(.065,.17,skinMat,0,-.145,0,elbow);
+      hands.push(capsule(.072,.02,skinMat,0,-.34,0,elbow));
+      arms.push(arm);legs.push(thigh);knees.push(knee);elbows.push(elbow);
+      batchGroup(elbow,[hands.at(-1)]);
+    }
+    batchGroup(neck,[head]);batchGroup(torso);
+    return {root, legs, arms, rig:{torso,neck,head,elbows,knees,feet,hands}};
+
   }
   const player = human();
   const person = new THREE.Group(),

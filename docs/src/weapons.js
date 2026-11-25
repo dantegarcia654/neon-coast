@@ -240,7 +240,7 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
           if(target.civilian)onAssault(victim,swingKind);
           else {
             tag(victim,swingKind);
-            beginBodyReaction(victim,victim.x-actor.x,victim.z-actor.z,heavy?5:2.7,heavy?2.4:0,blastOptions.blocked,heavy?.65:.12);
+            beginBodyReaction(victim,victim.x-actor.x,victim.z-actor.z,heavy?5:2.7,heavy?2.4:0,blastOptions.blocked,heavy?.65:.12,"punch");
             if(heavy)victim.snackTime=Math.max(victim.snackTime,12);
           }
           if(heavy)hammerHits++;else punchHits++;

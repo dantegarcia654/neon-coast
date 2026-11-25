@@ -612,6 +612,7 @@ function tick(now) {
   if (paused || wheel.active) dt = 0;
   elapsed += dt;
   if(bust>0){
+    encounters.stepPlayerImpact(dt,elapsed);
     bust=Math.max(0,bust-dt);
     if(bust===0)resetSession(false);
   }
@@ -858,7 +859,9 @@ function tick(now) {
     encounters.syncSeat(c,target);
     if (c.traffic && c !== car && dt && started && !bust) {
       decayImpact(c,dt);
+      const oldX=c.x,oldZ=c.z;
       encounters.updateTraffic(c,dt,!car);
+      assault.vehicleStep(c,oldX,oldZ,dt,false);
       if (c.x < -170) c.x = 170;
       if (c.z < -170) c.z = 170;
       if (c.x > 170) c.x = -170;
