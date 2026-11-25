@@ -78,12 +78,10 @@ export function createEncounters(
     c.driver = n;
     world.pedestrians.push(n);
   }
-  world.vehicleModels.ready.then(() => {
-    for (const n of drivers) {
+  for (const n of drivers) {
       n.seat.position.set(-0.37, (n.car.roofHeight || 1.55) * 0.62, 0.03);
       n.car.g.add(n.seat);
-    }
-  });
+  }
   function bodyBlocked(x, z, r = 0.37, ignore = null) {
     if (wall(x, z, r)) return true;
     return [...world.cars, ...world.cops].some(

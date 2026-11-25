@@ -1,15 +1,16 @@
+import {rosterLoader,loadGLB} from './roster-loader.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const CHARACTER_DEFINITIONS = [
-  {id:'jean',yaw:Math.PI,name:'Jean Philanthrope',tag:'THE UNLIKELY LOCAL',description:'A familiar face. An unfamiliar city.',height:2.02,portrait:'./assets/characters/jean-reference.png',model:'./assets/characters/jean.glb',idle:'./assets/characters/jean-idle.json',color:'#c8a776'},
-  {id:'mara',yaw:Math.PI,name:'Mara Vega',tag:'THE STREET RACER',description:'Knows every turn. Owes nobody a favor.',height:1.74,portrait:'./assets/characters/mara-reference.png',model:'./assets/characters/mara.glb',idle:'./assets/characters/mara-idle.json',color:'#82bfb7'},
+  {id:'jean',yaw:Math.PI,name:'Jean Philanthrope',tag:'THE UNLIKELY LOCAL',description:'A familiar face. An unfamiliar city.',height:2.02,portrait:'./assets/characters/jean-card.webp',model:'./assets/characters/jean.glb',idle:'./assets/characters/jean-idle.json',color:'#c8a776'},
+  {id:'mara',yaw:Math.PI,name:'Mara Vega',tag:'THE STREET RACER',description:'Knows every turn. Owes nobody a favor.',height:1.74,portrait:'./assets/characters/mara-card.webp',model:'./assets/characters/mara.glb',idle:'./assets/characters/mara-idle.json',color:'#82bfb7'},
 ];
 
 export function createCharacterSystem(container, fallback) {
   const loader = new GLTFLoader();
   const records = new Map();
-  let selected = 'jean', active = null, onChange = () => {};
+  let selected = 'jean', active = null;
   const state = {ready:false,loading:true,error:null,selected:'jean'};
   fallback.visible = false;
 
@@ -24,15 +25,14 @@ export function createCharacterSystem(container, fallback) {
     record.walk.play().setEffectiveWeight(0);
     record.idle.play().setEffectiveWeight(1);
     record.movingWeight = 0;
-    onChange({...state});
     return true;
   }
 
-  async function loadOne(def) {
-    try {
+  const requests=rosterLoader(async (id,signal)=>{
+      const def=CHARACTER_DEFINITIONS.find(c=>c.id===id);
       const [gltf,idleJSON] = await Promise.all([
-        loader.loadAsync(def.model),
-        fetch(def.idle).then(response => {
+        loadGLB(loader,def.model,signal),
+        fetch(def.idle,{signal}).then(response => {
           if (!response.ok) throw new Error(`Idle animation HTTP ${response.status}`);
           return response.json();
         }),
@@ -69,20 +69,27 @@ export function createCharacterSystem(container, fallback) {
       const record = {def,root,model,mixer,seatedLegs,spine,chest,neck,head,hips:model.getObjectByName('Hips'),right:model.getObjectByName('RightHand'),left:model.getObjectByName('LeftHand'),walk:mixer.clipAction(walkClip),idle:mixer.clipAction(idleClip),movingWeight:0,animations:[walkClip.name,idleClip.name]};
       records.set(def.id,record);
       return record;
-    } catch (error) {
-      console.error('Character asset failed:',def.id,error);
-      return null;
+  });
+  async function select(id) {
+    requests.prioritize(id);
+    if(selected===id && state.ready)return;
+    selected=state.selected=id;
+    state.loading=!records.has(id);state.ready=false;state.error=null;
+    if(active && active.def.id!==id)active.root.visible=false;
+    try {
+      if(!records.has(id))await requests.request(id);
+      if(selected===id){applySelection(id);state.ready=true;state.loading=false;}
+    }catch(error){
+      if(selected===id && error.name!=="AbortError"){
+        state.error="Could not load this character.";state.loading=false;
+      }
+      throw error;
     }
   }
-
-  const ready = Promise.all(CHARACTER_DEFINITIONS.map(loadOne)).then(results => {
-    state.loading = false;
-    state.ready = results.some(Boolean);
-    state.error = results.every(Boolean)?null:state.ready?'One character is unavailable; choose the loaded lead.':'Characters could not load. Reload to try again.';
-    applySelection(selected) || applySelection([...records.keys()][0]);
-    onChange({...state});
-    return state;
-  });
+  async function loadReserve(){
+    const other=CHARACTER_DEFINITIONS.find(c=>c.id!==selected);
+    if(!records.has(other.id))await requests.request(other.id);
+  }
 
   const previousPose=new Map();
   function releaseHands(){
@@ -128,7 +135,7 @@ export function createCharacterSystem(container, fallback) {
   }
 
   return {
-    ready,select:applySelection,update,
+    select,loadReserve,update,
     sit(c){
       if(!active)return;
       const seat=new THREE.Vector3(...c.spec.seat),aim=new THREE.Vector3();
@@ -173,7 +180,6 @@ export function createCharacterSystem(container, fallback) {
     shoulderPosition(out){return active?.right?.parent?.parent?.getWorldPosition(out)},
     reachRight(target){reach("right",target)},
     holdLauncher(right,left){reach("right",right);reach("left",left)},
-    setOnChange:fn=>{onChange=fn;fn({...state});},
     getState:()=>({...state,loaded:[...records.keys()],activeAnimations:active?.animations||[],model:active?.def.model||null}),
   };
 }

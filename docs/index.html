@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Neon Coast — Open City</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23d3ffa1%27/%3E%3Ctext x=%278%27 y=%2745%27 font-size=%2736%27 font-family=%27sans-serif%27 font-weight=%27bold%27 fill=%27%23122a2d%27%3ENC%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./style.css?v=17" />
+    <link rel="stylesheet" href="./style.css?v=20" />
   </head>
   <body class="menu-open">
     <canvas id="world" tabindex="-1"></canvas>
@@ -64,19 +64,21 @@
         <div class="eyebrow">A SMALL CITY. A BAD IDEA.</div>
         <h2>NEON<br /><em>COAST</em></h2>
         <p>Take a ride. Stir up trouble. Lose the heat.</p>
-        <div class="selector-heading"><span>CHOOSE YOUR LEAD</span><b>01 / 02</b></div>
+        <fieldset class="start-modes">
+          <legend>Play mode</legend>
+          <label><input type="radio" name="play-mode" value="getaway" checked><span><b>Quick Getaway</b><small>Start driving with one star</small></span></label>
+          <label><input type="radio" name="play-mode" value="roam"><span><b>Free Roam</b><small>Explore at your own pace</small></span></label>
+        </fieldset>
+        <div class="selector-heading"><span>Choose your lead</span></div>
         <div id="character-list" aria-label="Playable characters"></div>
-        <div id="character-status" role="status">Loading playable character models…</div>
-        <label class="garage-label" for="starter-car"><img id="garage-car" src="./assets/garage/Strada-GT.jpg" alt=""><span>Starting vehicle</span> <select id="starter-car" disabled><option>Loading garage…</option></select></label>
-        <label for="departure" class="departure">Start location <select id="departure"><option value="city">Downtown</option></select></label>
-        <label class="departure">Start with a police chase <input id="chase-start" type="checkbox"></label>
-        <label class="departure">Foot patrols when on foot <input id="foot-patrols" type="checkbox" checked></label>
-        <div class="selected-caption">PLAYING AS <b id="selected-name">Jean Philanthrope</b></div>
-        <button id="start" disabled>ENTER THE CITY <span>↗</span></button>
-        <div class="intro-note">
-          YOUR STORY STARTS AT THE COAST<br />WASD to move · E
-          to steal a car · Drag to look
+        <label class="garage-label" for="starter-car"><img id="garage-car" src="./assets/garage/Strada-GT.jpg" alt=""><span>Starting vehicle</span><select id="starter-car" disabled><option>Strada GT</option></select></label>
+        <div id="roam-options" hidden>
+          <label for="departure" class="departure">Start location <select id="departure"><option value="city">Downtown</option></select></label>
+          <label class="departure">Start with a police chase <input id="chase-start" type="checkbox"></label>
         </div>
+        <label class="departure" id="foot-setting" hidden>Foot patrols when on foot <input id="foot-patrols" type="checkbox" checked></label>
+        <div class="load-row"><div id="character-status" role="status">Preparing the city…</div><button type="button" id="retry-load" hidden>Retry</button></div>
+        <button id="start" disabled>START GETAWAY <span aria-hidden="true">↗</span></button>
       </div>
     </div>
     <div id="pause" hidden>
@@ -87,6 +89,8 @@
     <script type="importmap">
       {
         "imports": {
+          "./src/vehicles.js": "./src/vehicles.js?v=20",
+          "./src/selector.js": "./src/selector.js?v=20",
           "three": "./vendor/three.module.js",
           "./src/impact-motion.js": "./src/impact-motion.js?v=18",
           "./src/pedestrian-impact.js": "./src/pedestrian-impact.js?v=19",
@@ -95,8 +99,8 @@
           "./src/foot-patrol.js": "./src/foot-patrol.js?v=19",
           "./src/impact-surfaces.js": "./src/impact-surfaces.js?v=15",
           "./src/sahur.js": "./src/sahur.js?v=15",
-          "./src/characters.js": "./src/characters.js?v=19",
-          "./src/encounters.js": "./src/encounters.js?v=19",
+          "./src/characters.js": "./src/characters.js?v=20",
+          "./src/encounters.js": "./src/encounters.js?v=20",
           "./src/weapons.js": "./src/weapons.js?v=19",
           "three/addons/": "./vendor/addons/",
           "./src/assault.js": "./src/assault.js?v=19",
@@ -105,6 +109,6 @@
         }
       }
     </script>
-    <script type="module" src="./src/main.js?v=19"></script>
+    <script type="module" src="./src/main.js?v=20"></script>
   </body>
 </html>

@@ -1,8 +1,23 @@
 import {CHARACTER_DEFINITIONS} from './characters.js';
-export function installCharacterSelector(world){const root=document.querySelector('#character-list'),status=document.querySelector('#character-status'),start=document.querySelector('#start');
- root.innerHTML=CHARACTER_DEFINITIONS.map((c,i)=>`<button class="character-card ${i===0?'selected':''}" data-character="${c.id}" aria-pressed="${i===0}"><img src="${c.portrait}" alt="${c.name}"><span class="character-copy"><small>${c.tag}</small><strong>${c.name}</strong><span>${c.description}</span></span><b>${String(i+1).padStart(2,'0')}</b></button>`).join('');
- function select(id){if(!world.characters.select(id))return;for(const b of root.querySelectorAll('button')){const chosen=b.dataset.character===id;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen))}document.querySelector('#selected-name').textContent=CHARACTER_DEFINITIONS.find(c=>c.id===id).name}
- root.addEventListener('click',e=>{const b=e.target.closest('[data-character]');if(b)select(b.dataset.character)});
- world.characters.setOnChange(state=>{start.disabled=!state.ready || document.querySelector("#starter-car").disabled;for(const b of root.querySelectorAll('button')){const loaded=world.characters.getState().loaded.includes(b.dataset.character);b.disabled=!loaded;const chosen=b.dataset.character===state.selected;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen))}status.textContent=state.loading?'Loading your characters…':state.error||'READY TO PLAY · SELECT YOUR LEAD';root.setAttribute('aria-busy',String(state.loading));if(!state.loading&&!state.error)document.querySelector('#selected-name').textContent=CHARACTER_DEFINITIONS.find(c=>c.id===state.selected).name});
- return {select};
+
+export function installCharacterSelector(onSelect) {
+  const root=document.querySelector('#character-list');
+  for(const [i,c] of CHARACTER_DEFINITIONS.entries()){
+    const button=document.createElement('button');
+    button.type='button';button.className='character-card';
+    button.dataset.character=c.id;
+    button.innerHTML=`<img src="${c.portrait}" alt=""><span class="character-copy"><small>${c.tag}</small><strong>${c.name}</strong></span>`;
+    button.classList.toggle('selected',i===0);
+    button.setAttribute('aria-pressed',String(i===0));
+    root.append(button);
+  }
+  root.addEventListener('click',event=>{
+    const card=event.target.closest('[data-character]');
+    if(!card || card.getAttribute('aria-pressed')==='true')return;
+    for(const button of root.children){
+      button.classList.toggle('selected',button===card);
+      button.setAttribute('aria-pressed',String(button===card));
+    }
+    onSelect(card.dataset.character);
+  });
 }

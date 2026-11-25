@@ -351,3 +351,26 @@ header,#stats,#mission,#radar,#prompt,#toast,footer{pointer-events:none}
 #new-session{margin-top:12px;background:transparent;color:#e7efe9;border:1px solid #748784}
 #world:focus{outline:none}
 #pause{z-index:15}
+
+#intro {overflow-y:auto;align-items:safe center}
+#intro [hidden] {display:none}
+.start-modes {display:flex;gap:8px;padding:0;margin:0 0 17px;border:0}
+.start-modes legend,.selector-heading {color:#c5d1cd;font-size:10px;letter-spacing:1.3px;text-transform:uppercase}
+.start-modes legend {margin:0 0 7px}
+.start-modes label {flex:1;position:relative;cursor:pointer}
+.start-modes input {position:absolute;opacity:0;width:1px;height:1px}
+.start-modes label span {display:grid;gap:4px;padding:11px;border:1px solid #658080;border-radius:4px;background:#11242bbb;color:#fff}
+.start-modes input:checked + span {background:#d3ffa1;color:#142723;border-color:#d3ffa1}
+.start-modes input:focus-visible + span {outline:2px solid white;outline-offset:3px}
+.start-modes b {font-size:14px}.start-modes small {font-size:10px;letter-spacing:.05px}
+#character-list {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#character-list .character-card {min-height:58px}
+#character-list .character-card img {width:45px;height:58px;object-fit:cover}
+#character-list .character-copy {padding:5px 7px;min-width:0}
+#character-list .character-copy strong {font-size:17px;line-height:1}
+#character-list .character-copy small {font-size:8px;letter-spacing:.55px}
+.load-row {min-height:26px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.load-row #character-status {margin:0;font-size:11px;letter-spacing:.25px}
+#retry-load {min-width:0;padding:4px 8px;font-size:10px;letter-spacing:.2px}
+#intro .garage-label {margin-top:15px}
+@media(max-width:800px){#intro .intro-card{width:min(92vw,400px)}}

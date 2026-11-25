@@ -1,3 +1,4 @@
+import {getawayStart} from './getaway-spawn.js';
 import {sweptContact} from './traffic-contact.js';
 import {createEncounters} from './encounters.js';
 import {decayImpact,hullBlocked,moveVehicle,collisionImpulse,impactDamage} from './crash.js';
@@ -18,7 +19,6 @@ import { createWorld } from "./visuals.js";
 import { installCharacterSelector } from "./selector.js";
 const $ = (s) => document.querySelector(s);
 const world = createWorld($("#world"));
-installCharacterSelector(world);
 const {
   scene,
   renderer,
@@ -100,12 +100,9 @@ const weapons = createWeapons(world,(unit,kind)=>{
 }});
 const wheel=weapons.wheel;
 const garage = $("#starter-car");
-world.vehicleModels.ready.then(() => {
-  garage.replaceChildren(...[...world.vehicleModels.options(),...transport.vehicles.map(c=>c.spec)].map(spec=>new Option(spec.name,spec.name)));
-  garage.disabled=false;
-  $("#start").disabled=!world.characters.getState().ready;
-  if (!started) stageCar();
-});
+let playMode="getaway",leadId="jean",selectionVersion=0,backgroundVersion=0;
+let starterReady=false,teachWeapons=false,getawayTime=0,waitingCruiser=false;
+const modeVehicles={getaway:"Strada GT",roam:"Strada GT"};
 const portraits=new Map();
 function specialSelected(){return transport.vehicles.find(c=>c.spec.name===garage.value)}
 function stageCar() {
@@ -125,7 +122,74 @@ function stageCar() {
     else if(departure.value==='city')departure.value='East Pier';
   }else if(world.vehicleModels.stage(garage.value))$("#garage-car").src="./assets/garage/"+garage.value.replaceAll(" ","-")+".jpg";
 }
-garage.addEventListener("change",stageCar);
+function populateGarage(){
+  const specs=world.vehicleModels.options();
+  const choices=playMode==="getaway"?specs:[...specs,...transport.vehicles.map(c=>c.spec)];
+  garage.replaceChildren(...choices.map(spec=>new Option(spec.name,spec.name)));
+  garage.value=modeVehicles[playMode];garage.disabled=false;
+}
+
+async function prepareSelection(){
+  const version=++selectionVersion, name=garage.value, special=specialSelected();
+  const start=$("#start"), status=$("#character-status"), retry=$("#retry-load");
+  starterReady=false;start.disabled=true;retry.hidden=true;
+  world.vehicleModels.prioritize(special?null:name);
+  let leadPending=world.characters.getState().selected!==leadId || !world.characters.getState().ready;
+  let carPending=!special && !world.vehicleModels.has(name);
+  const leadName=leadId==="jean"?"Jean":"Mara";
+  function progress(){
+    if(version!==selectionVersion)return;
+    const waiting=[leadPending?leadName:"",carPending?name:""].filter(Boolean);
+    if(waiting.length)status.textContent="Loading "+waiting.join(" and ")+"…";
+  }
+  progress();
+  if(!special)$("#garage-car").src="./assets/garage/"+name.replaceAll(" ","-")+".jpg";
+  try{
+    await Promise.all([
+      world.characters.select(leadId).then(()=>{leadPending=false;progress()}),
+      (special?Promise.resolve():world.vehicleModels.ensure(name)).then(()=>{carPending=false;progress()})
+    ]);
+    if(version!==selectionVersion)return;
+    stageCar();starterReady=true;start.disabled=false;
+    status.textContent=leadName+" · "+name+" ready";
+    performance.mark("neon-starter-ready");
+  }catch(error){
+    if(version!==selectionVersion || error.name==="AbortError")return;
+    ++selectionVersion;
+    status.textContent="Couldn’t load "+[leadPending?leadName:"",carPending?name:""].filter(Boolean).join(" / ")+". Retry or choose another.";
+    retry.hidden=false;
+  }
+}
+
+async function streamRoster() {
+  const version=++backgroundVersion;
+  const reserve=[()=>world.characters.loadReserve(),
+    ...world.vehicleModels.options().filter(s=>!world.vehicleModels.has(s.name)).map(s=>()=>world.vehicleModels.ensure(s.name))];
+  // Give the first driving frames priority, then parse one reserve model at a time.
+  await new Promise(resolve=>setTimeout(resolve,750));
+  for(const load of reserve){
+    if(version!==backgroundVersion || !started)return;
+    await new Promise(resolve=>window.requestIdleCallback?requestIdleCallback(resolve,{timeout:400}):setTimeout(resolve,32));
+    if(version!==backgroundVersion || !started)return;
+    try{await load()}catch{/* A missing reserve remains selectable for an explicit retry. */}
+  }
+}
+
+garage.addEventListener("change",()=>{
+  modeVehicles[playMode]=garage.value;
+  if(world.vehicleModels.options().some(s=>s.name===garage.value))modeVehicles[playMode==="roam"?"getaway":"roam"]=garage.value;
+  prepareSelection();
+});
+installCharacterSelector(id=>{leadId=id;prepareSelection()});
+for(const radio of document.querySelectorAll('[name="play-mode"]')){
+  radio.addEventListener("change",()=>{
+    playMode=radio.value;
+    $("#roam-options").hidden=$("#foot-setting").hidden=playMode!=="roam";
+    $("#start").firstChild.textContent=playMode==="roam"?"ENTER FREE ROAM ":"START GETAWAY ";
+    populateGarage();prepareSelection();
+  });
+}
+$("#retry-load").onclick=prepareSelection;
 const keys = {};
 let audioCtx;
 function sound(freq, duration = 0.1, type = "sine", volume = 0.04, delay = 0) {
@@ -356,6 +420,7 @@ function craftHelp(c){
   if(c.spec.kind==='boat')return 'Follow the channel buoys north. Slow alongside East Pier to disembark.';
   return 'Follow Ocean Avenue into town or head north for the coastal trail.';
 }
+populateGarage();prepareSelection();
 let tourCar=null, sessionHomes=[], dispatched=0, dispatchDomain=null;
 const patrolHomes=streetCops.map(({x,z,a})=>({x,z,a}));
 function standDownReserves(){
@@ -418,7 +483,8 @@ function endRun(title){
   $("#pause").hidden=false;$("#resume").focus();
 }
 function resetSession(toMenu){
-  bust=0;paused=false;started=!toMenu;clearInput();
+  bust=0;paused=false;started=!toMenu;teachWeapons=waitingCruiser=false;getawayTime=0;clearInput();
+  if(toMenu)++backgroundVersion;
   footPatrol.reset();assault.reset();encounters.reset();assaultCount=0;lastAssault=null;
   for(const npc of world.pedestrians){
     npc.startled=npc.walkOffsetX=npc.walkOffsetZ=0;npc.impact=null;
@@ -429,7 +495,7 @@ function resetSession(toMenu){
   car=tourCar=null;person.visible=true;
   Object.assign(p,{x:1,z:15,a:0,health:100});
   wanted=heatTimer=tierTime=delivery=job=dispatched=0;dispatchDomain=null;
-  standDownReserves();blocks.reset();airWatch.reset();transport.pursue(p,0,0);weapons.reset();cockpit.leave();followCamera.reset();
+  standDownReserves();blocks.reset();airWatch.reset();transport.pursue(p,0,0);weapons.reset();world.vehicleModels.restoreModels();cockpit.leave();followCamera.reset();
   for(const [c,home] of sessionHomes)Object.assign(c,home);
   transport.vehicles.forEach(transport.reset);
   streetCops.forEach((c,i)=>Object.assign(c,patrolHomes[i],{speed:0,way:null,snackTime:0,inContact:false}));
@@ -437,11 +503,11 @@ function resetSession(toMenu){
   $("#objective").textContent="Borrow something fast.";$("#detail").textContent="Find a car. Get in. Make it yours.";
   $("#pause").hidden=true;$("#pause-title").textContent="TAKE A BREATH.";$("#resume").textContent="BACK TO THE CITY";
   $("#intro").style.display=toMenu?"":"none";document.body.classList.toggle("menu-open",toMenu);
-  if(toMenu){stageCar();$("#start").focus();toastTime=0;$("#toast").style.opacity=0}
+  if(toMenu){prepareSelection();$("#start").focus();toastTime=0;$("#toast").style.opacity=0}
   else {toast("BACK ON FOOT · ESC FOR A NEW SESSION");canvas.focus({preventScroll:true})}
 }
 $("#start").onclick = () => {
-  if(!world.characters.getState().ready)return;
+  if(!starterReady || started || !world.characters.getState().ready)return;
   document.body.classList.remove("menu-open");
   sessionHomes=cars.filter(c=>!c.spec.special).map(c=>[c,{x:c.x,z:c.z,a:c.a,speed:c.speed,traffic:c.traffic,health:100}]);
   started = true;
@@ -449,7 +515,18 @@ $("#start").onclick = () => {
   audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
   clearInput();canvas.focus({preventScroll:true});
   const chosen=specialSelected(),start=trailheads.find(place=>place.name===departure.value),pier=departure.value==='East Pier';
-  if(chosen||start||pier){
+  if(playMode==="getaway"){
+    car=tourCar=world.vehicleModels.starter;
+    const site=getawayStart([...cars,...streetCops],car,streetCops[0],blocked);
+    Object.assign(car,{x:site.x,z:site.z,a:0,speed:0,slip:0,traffic:false,health:100});
+    p.x=car.x;p.z=car.z;person.visible=false;
+    Object.assign(streetCops[0],{x:site.copX,z:site.copZ,a:0,way:null,speed:0});
+    Object.assign(airWatch.report,{x:car.x,z:car.z});
+    job=1;heat(1);teachWeapons=waitingCruiser=true;getawayTime=0;
+    $("#objective").textContent="Lose the cruiser.";
+    $("#detail").textContent="W to accelerate · A/D to steer · Space to handbrake";
+    toastTime=0;$("#toast").style.opacity=0;
+  }else if(chosen||start||pier){
     car=tourCar=chosen||world.vehicleModels.starter;
     if(start||pier){const place=start||{x:159,z:0,a:Math.PI/2};Object.assign(car,{x:place.x,z:place.z,a:place.a,speed:0,traffic:false});
       if(car.spec.special)car.y=transport.floor(car.x,car.z);}
@@ -458,13 +535,15 @@ $("#start").onclick = () => {
     $("#detail").textContent=chosen?craftHelp(chosen):"Follow the marked road through the four trailheads and back to downtown.";
     toast((start?.name||(pier?"East Pier":chosen?.spec.station)||"East Pier").toUpperCase());
   }else toast("NORTH ON CENTRAL AVE · COASTAL LOOP");
-  if($("#chase-start").checked){
+  if(playMode==="roam" && $("#chase-start").checked){
     if(!car){car=tourCar=world.vehicleModels.starter;person.visible=false}
     if(!car.spec.special||['quad','scooter'].includes(car.spec.kind)){
       Object.assign(streetCops[0],{x:car.x,z:car.z+24,a:car.a,way:null,speed:0});
     }
     heat(1);toast("ONE STAR · DISPATCH ALERTED");
   }
+  performance.mark("neon-session-start");
+  streamRoster();
 };
 $("#new-session").onclick=()=>resetSession(true);
 $("#resume").onclick = () => {
@@ -618,6 +697,12 @@ function tick(now) {
   }
   const target = car || p;
   if (started && !paused && !bust && !wheel.active) {
+    if(teachWeapons || waitingCruiser)getawayTime+=dt;
+    if(teachWeapons){
+      if(getawayTime>5 && car && Math.abs(car.speed)>5 && wanted===1 && toastTime<=0){
+        toast("HOLD TAB TO CHOOSE A WEAPON");teachWeapons=false;
+      }
+    }
     const oldX=target.x,oldZ=target.z,oldHeading=target.a;
     encounters.step(dt,elapsed,car,!!keys.Space&&!wheel.armed);
     if(car)decayImpact(car,dt);
@@ -708,7 +793,10 @@ function tick(now) {
         const dx = target.x - c.x,
           dz = target.z - c.z,
           dist = Math.hypot(dx, dz);
-        let goal=reported?target:airWatch.report;
+        // A patrol parked across the avenue pulls out behind the first getaway.
+        if(waitingCruiser && (!car || wanted>1 || target.z<c.z-3 || getawayTime>=6))waitingCruiser=false;
+        const holding=waitingCruiser && index===0;
+        let goal=holding?c:reported?target:airWatch.report;
         if(index && reported && car && Math.abs(car.speed)>3 && dist<35){
           const side=index%2?2.9:-2.9;
           const behind=index<3?4:index<5?-6:10;
@@ -764,7 +852,7 @@ function tick(now) {
               Math.PI * 2,
             ) - Math.PI;
         c.a += THREE.MathUtils.clamp(diff, -2.2 * dt, 2.2 * dt);
-        c.speed = THREE.MathUtils.lerp(c.speed, car ? response.roadSpeed : response.footSpeed, dt);
+        c.speed = holding ? 0 : THREE.MathUtils.lerp(c.speed, car ? response.roadSpeed : response.footSpeed, dt);
         const wd = Math.hypot(wx - c.x, wz - c.z) || 1,
           contact = car ? clearance(c,car,dx,dz,dist) : carRadius(c,dx/(dist||1),dz/(dist||1))+.42,
           step = Math.min(c.speed * dt, wd, Math.max(0,dist-contact));
@@ -816,7 +904,7 @@ function tick(now) {
           tierTime+=dt;
           if(tierTime>=escalationSeconds){heat(wanted+1);toast(wanted+" STARS · "+dispatchLabel(transport.domain,wanted))}
         }
-        if (job === 1 || job === 2)
+        if ((job === 1 || job === 2) && !(teachWeapons && getawayTime<5))
           $("#detail").textContent =
             "Police close by. Get some distance and keep moving.";
       }
@@ -929,7 +1017,9 @@ function tick(now) {
     toastTime -= dt;
     if (toastTime <= 0) $("#toast").style.opacity = 0;
   }
-  const district=world.districtAt(target.x,target.z);$(".district").innerHTML=district+' <span> // FREE ROAM</span>';$("#radar>span").textContent=district;
+  const district=world.districtAt(target.x,target.z);
+  const activity=started && playMode==="getaway" && job===1 && wanted ? "QUICK GETAWAY" : "FREE ROAM";
+  $(".district").innerHTML=district+" <span> // "+activity+"</span>";$("#radar>span").textContent=district;
   drawMap(target.x, target.z, car ? car.a : p.a);
   world.updateVisuals(dt, elapsed, car, p, camera, started);
   if(car?.spec.special){
@@ -961,7 +1051,7 @@ addEventListener("resize", () => {
 });
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
-  started,
+  started,playMode,starterReady,
   weapons:weapons.state(),encounters:encounters.state(),
   paused,
   mode: car ? "driving" : "on foot",

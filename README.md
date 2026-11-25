@@ -8,7 +8,7 @@ A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthro
 
 ## Play on your computer
 
-1. [Download Neon Coast V19](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v19.0.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V20](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v20.0.0.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
@@ -18,7 +18,9 @@ The models, animations, textures and Three.js runtime come with the download. Th
 
 ## First session
 
-Choose your character, vehicle and starting location. Downtown starts you on foot near your chosen car. Select a trailhead to start in the driver’s seat, or check **Start with a police chase** for an immediate one-star pursuit. **Foot patrols when on foot** lets officers get out and fire Meat Rockets during an on-foot chase.
+Choose **Quick Getaway** to start in your selected road car with one star and a cruiser in view. Press **W** to accelerate and **A/D** to steer. Lose the cruiser to reveal the coastal delivery.
+
+Choose **Free Roam** to start downtown on foot, select a trailhead, or take a boat or aircraft from its station. Free Roam also offers the optional chase start and foot-patrol setting. Both modes load your chosen lead and vehicle first. The rest of the roster loads during play.
 
 | Control | Action |
 | --- | --- |
