@@ -1,3 +1,4 @@
+import {updatePedestrianImpact} from './pedestrian-impact.js';
 import {buildLanding,pierHeight,atPier,atTerminal,coastWater} from './transport.js';
 import * as THREE from "three";
 import {createRuralWorld} from './terrain.js';
@@ -434,6 +435,7 @@ export function createWorld(canvas) {
     }
   // Curved palm fronds, with cut leaflets and a tapered trunk.
   function palm(x, z, size = 1) {
+    colliders.push({x,z,w:.22*size,d:.22*size});
     const g = new THREE.Group();
     g.position.set(x, 0, z);
     g.scale.setScalar(size);
@@ -568,6 +570,7 @@ export function createWorld(canvas) {
   // Promenade, lamps, benches, fire hydrants and crossing signals.
   box(7, 0.25, 355, "#c1aa8d", 165, 0, 0, scene, "plaster");
   for (let z = -160; z < 170; z += 24) {
+    colliders.push({x:157,z,w:.13,d:.13},{x:163.3,z,w:.46,d:1.05},{x:162,z:z+6,w:.31,d:.31});
     cylinder(0.08, 0.13, 7, "#3c494e", 157, 3.5, z);
     const arm = box(2.1, 0.1, 0.1, "#3c494e", 156, 6.9, z);
     box(1.7, 0.08, 0.55, "#ecdfaa", 155.4, 6.85, z);
@@ -584,6 +587,7 @@ export function createWorld(canvas) {
         box(1.15, 0.018, 2.5, "#c9c6b4", x + q, 0.12, z + 10.7);
         box(2.5, 0.018, 1.15, "#c9c6b4", x + 10.7, 0.12, z + q);
       }
+      colliders.push({x:x+10,z:z-10,w:.12,d:.12},{x:x-11,z:z+12,w:.22,d:.22});
       cylinder(0.08, 0.1, 4.6, "#485257", x + 10, 2.3, z - 10);
       box(0.32, 0.85, 0.28, "#333c40", x + 10, 4.25, z - 10);
       mesh(
@@ -1041,18 +1045,22 @@ export function createWorld(canvas) {
       const front=groundHeight(c.x+forwardX*1.45,c.z+forwardZ*1.45);
       const back=groundHeight(c.x-forwardX*1.45,c.z-forwardZ*1.45);
       c.g.rotation.order="YXZ";
-      c.g.rotation.x=Math.atan2(front-back,2.9);
+      c.g.rotation.x=Math.atan2(front-back,2.9)+(c.crashPitch||0);
       const sideX=Math.cos(c.a)*.8,sideZ=-Math.sin(c.a)*.8;
-      c.g.rotation.z=c.z < -176 ? Math.atan2(groundHeight(c.x+sideX,c.z+sideZ)-groundHeight(c.x-sideX,c.z-sideZ),1.6) : 0;
+      c.g.rotation.z=(c.z < -176 ? Math.atan2(groundHeight(c.x+sideX,c.z+sideZ)-groundHeight(c.x-sideX,c.z-sideZ),1.6) : 0)+(c.crashRoll||0);
     }
     player.arms[0].rotation.x = -legs[0].rotation.x * 0.75;
     player.arms[1].rotation.x = -legs[1].rotation.x * 0.75;
     for (const npc of pedestrians) {
+      npc.root.visible=Math.hypot(npc.root.position.x-target.x,npc.root.position.z-target.z)<65;
+      if(updatePedestrianImpact(npc,dt,time,groundHeight))continue;
+      npc.walkOffsetX=(npc.walkOffsetX||0)*Math.exp(-.6*dt);
+      npc.walkOffsetZ=(npc.walkOffsetZ||0)*Math.exp(-.6*dt);
+      npc.root.position.z=npc.z+npc.walkOffsetZ;
       npc.startled=Math.max(0,(npc.startled||0)-dt);
       npc.root.rotation.x=-.25*Math.min(1,npc.startled*4);
-      npc.root.visible = Math.hypot(npc.x-target.x,npc.z-target.z) < 65;
-      npc.root.position.x = npc.x + Math.sin(time * 0.08 + npc.phase) * 8;
-      npc.root.position.y = groundHeight(npc.root.position.x,npc.z);
+      npc.root.position.x = npc.x + Math.sin(time * 0.08 + npc.phase) * 8+npc.walkOffsetX;
+      npc.root.position.y = groundHeight(npc.root.position.x,npc.root.position.z);
       npc.root.rotation.y =
         Math.cos(time * 0.08 + npc.phase) > 0 ? -Math.PI / 2 : Math.PI / 2;
       npc.legs.forEach(

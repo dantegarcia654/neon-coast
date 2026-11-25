@@ -1,3 +1,4 @@
+import {moveVehicle,impactDamage} from './crash.js';
 import {responseFor} from './pursuit.js';
 import * as T from 'three';
 import {landHeight,route} from './terrain.js';
@@ -66,7 +67,7 @@ export function installTransport(world){
   const units=[marine,air];units.forEach(c=>{c.active=false;c.g.visible=false;c.snackTime=0});
   cars.push(...vehicles);cops.push(...units);
   const floor=(x,z)=>pierHeight(x,z)??(coastWater(x,z)?-.90:getGroundHeight(x,z));
-  function reset(c){const [x,z,a]=c.spec.home;Object.assign(c,{x,z,a,y:floor(x,z),speed:0,pitch:0,bank:0,health:100,snackTime:0});sync(c,0,0,false)}
+  function reset(c){const [x,z,a]=c.spec.home;Object.assign(c,{x,z,a,y:floor(x,z),speed:0,slip:0,crashPitch:0,crashRoll:0,pitch:0,bank:0,health:100,snackTime:0});sync(c,0,0,false)}
   vehicles.forEach(reset);
   function roof(x,z,r){
     let h=floor(x,z);
@@ -74,7 +75,7 @@ export function installTransport(world){
     return h;
   }
   function update(c,dt,keys,elapsed,move){
-    const kind=c.spec.kind,throttle=Number(!!(keys.KeyW||keys.ArrowUp))-Number(!!(keys.KeyS||keys.ArrowDown));
+    const oldHeading=c.a,kind=c.spec.kind,throttle=Number(!!(keys.KeyW||keys.ArrowUp))-Number(!!(keys.KeyS||keys.ArrowDown));
     const steer=Number(!!(keys.KeyA||keys.ArrowLeft))-Number(!!(keys.KeyD||keys.ArrowRight));
     const lift=Number(!!keys.KeyQ)-Number(!!keys.KeyZ),flying=flight(c);
     const base=floor(c.x,c.z),agl=Math.max(0,c.y-base),heli=kind==='heli',plane=kind==='plane';
@@ -89,22 +90,18 @@ export function installTransport(world){
       c.y=clamp(c.y+climb*dt,c.y>=support-.01?support:base,140);
       if(heli&&c.y-base<.45)c.speed=0;
     }
-    const dx=-Math.sin(c.a)*c.speed*dt,dz=-Math.cos(c.a)*c.speed*dt,nx=c.x+dx,nz=c.z+dz;
-    let bumped=false;
+    let impact;
     if(kind==='boat'||(plane&&c.y-base<.65&&coastWater(c.x,c.z))){
-      if(canFloat(nx,nz)){c.x=nx;c.z=nz}else bumped=true;
+      impact=moveVehicle(c,dt,(x,z)=>!canFloat(x,z));
     }else if(flying){
-      const height=roof(nx,nz,plane?2.2:1);
-      if(nx< -310||nx>525||nz< -690||nz>230||height>c.y+.6||atPier(nx,nz)&&c.y<.6)bumped=true;
-      else {c.x=nx;c.z=nz;c.y=Math.max(c.y,floor(nx,nz))}
+      impact=moveVehicle(c,dt,(x,z)=>x< -310||x>525||z< -690||z>230||
+        roof(x,z,plane?2.2:1)>c.y+.6||atPier(x,z)&&c.y<.6);
+      c.y=Math.max(c.y,floor(c.x,c.z));
     }else{
-      bumped=move(c,dx,dz,kind==='quad'?.82:.48);
+      impact=move(c,dt,kind==='quad'?.82:.48,oldHeading);
       if(kind==='scooter'&&c.z<-176)c.speed*=Math.exp(-.14*dt);
     }
-    if(bumped){
-      if(Math.abs(c.speed)>5)c.health=Math.max(0,c.health-Math.abs(c.speed)*.35);
-      c.speed*=-.12;
-    }
+    if(impact>4.5)c.health=Math.max(0,c.health-impactDamage(impact)*.8);
     if(!flying)c.y=floor(c.x,c.z);
     c.bank=damp(c.bank,steer*(heli?.18:plane?.47:kind==='scooter'?.28:kind==='boat'?-.12:.07)*Math.min(1,Math.abs(c.speed)/6),5,dt);
     const pitch=flying?(heli?-c.speed*.006:lift*.17*Math.min(1,c.speed/10)):kind==='boat'?Math.min(.095,Math.abs(c.speed)*.005):Math.atan2(floor(c.x-Math.sin(c.a),c.z-Math.cos(c.a))-floor(c.x+Math.sin(c.a),c.z+Math.cos(c.a)),2);
@@ -112,7 +109,7 @@ export function installTransport(world){
   }
   function sync(c,dt,time,occupied){
     const bob=c.spec.kind==='boat'||(c.spec.kind==='plane'&&coastWater(c.x,c.z)&&c.y<0);
-    c.g.position.set(c.x,c.y+(bob?.065*Math.sin(time*2+c.x):0),c.z);c.g.rotation.set(c.pitch,c.a,c.bank+(bob?.025*Math.sin(time*1.6):0),'YXZ');
+    c.g.position.set(c.x,c.y+(bob?.065*Math.sin(time*2+c.x):0),c.z);c.g.rotation.set(c.pitch+(c.crashPitch||0),c.a,c.bank+(c.crashRoll||0)+(bob?.025*Math.sin(time*1.6):0),'YXZ');
     if(c.wake){
       c.wake.visible=bob&&c.g.visible&&c.speed>1;
       if(c.wake.visible){c.wake.position.set(c.x,-.82,c.z);c.wake.rotation.y=c.a;c.wake.scale.z=.35+Math.min(1,c.speed/22);c.wake.material.opacity=Math.min(1,c.speed/10)}

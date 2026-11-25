@@ -1,3 +1,4 @@
+import {velocity,decayImpact,hullBlocked,moveVehicle,collisionImpulse,impactDamage} from './crash.js';
 import {createFootPatrol} from './foot-patrol.js';
 import {createAssaultTracker} from './assault.js';
 import {reinforcementSite} from './backup.js';
@@ -55,7 +56,7 @@ const footOption=$("#foot-patrols");
 let assaultCount=0,lastAssault=null;
 function reportAssault(victim,kind){
   if(!started||bust)return;
-  if(!victim.police)victim.startled=.85;
+  if(!victim.police && kind!=='vehicle')victim.startled=.85;
   assaultCount++;lastAssault=kind;
   const actor=car||p,lead=streetCops[0];
   if(!wanted && !lead.snackTime && Math.hypot(actor.x-lead.x,actor.z-lead.z)>48){
@@ -66,7 +67,7 @@ function reportAssault(victim,kind){
   heat(wanted+1);
   toast("ASSAULT REPORTED · "+wanted+(wanted===1?" STAR":" STARS"));
 }
-const assault=createAssaultTracker(world,reportAssault);
+const assault=createAssaultTracker(world,reportAssault,blocked);
 const followCamera = createFollowCamera(camera, [...buildings,...world.cameraObstacles], world.getGroundHeight, [...cars, ...cops]);
 const cockpit = createCockpit(scene,renderer,camera);
 const weapons = createWeapons(world,(unit,kind)=>{
@@ -162,6 +163,12 @@ function moveEntity(e, dx, dz, r) {
   else hit = true;
   return hit;
 }
+function moveRoadVehicle(c,dt,r,oldHeading){
+  const test=(x,z)=>hullBlocked(c,x,z,r,blocked);
+  if(test(c.x,c.z) && !hullBlocked(c,c.x,c.z,r,blocked,oldHeading))c.a=oldHeading;
+  // Legacy spawn points can already overlap scenery. Let the driver pull clear.
+  return moveVehicle(c,dt,test(c.x,c.z)?(x,z)=>blocked(x,z,r):test);
+}
 // Elliptical footprints let pursuers pull alongside the player without
 // entering the cabin, while keeping bumper-to-bumper contact farther apart.
 function carRadius(entity, nx, nz) {
@@ -195,6 +202,7 @@ function interact() {
     }
     p.x = x;
     p.z = z;
+    car.slip=car.crashPitch=car.crashRoll=0;
     car.speed = 0;
     car = null;
     person.visible = true;
@@ -244,13 +252,14 @@ function recover() {
     const nearest=route.reduce((a,b)=>Math.hypot(active.x-a.x,active.z-a.z)<Math.hypot(active.x-b.x,active.z-b.z)?a:b);
     const index=route.indexOf(nearest),next=route[index+1]||route[index-1];
     Object.assign(active,{x:nearest.x,z:nearest.z,a:Math.atan2(nearest.x-next.x,nearest.z-next.z)});
-    if(car)car.speed=0;
+    if(car){car.slip=0;car.speed=0}
     toast("BACK ON THE COASTAL LOOP");return;
   }
   if (car) {
     car.x = 144;
     car.z = 0;
     car.a = 0;
+    car.slip=car.crashPitch=car.crashRoll=0;
     car.speed = 0;
     car.health = Math.max(50, car.health);
   } else {
@@ -375,7 +384,12 @@ function endRun(title){
 function resetSession(toMenu){
   bust=0;paused=false;started=!toMenu;clearInput();
   footPatrol.reset();assault.reset();assaultCount=0;lastAssault=null;
-  for(const npc of world.pedestrians)npc.startled=0;
+  for(const npc of world.pedestrians){
+    npc.startled=npc.walkOffsetX=npc.walkOffsetZ=0;npc.impact=null;
+    npc.root.rotation.set(0,0,0);
+    for(const arm of npc.arms)arm.rotation.z=0;
+  }
+  for(const c of cars){c.slip=c.crashPitch=c.crashRoll=0;c.touchingPlayer=false}
   car=tourCar=null;person.visible=true;
   Object.assign(p,{x:1,z:15,a:0,health:100});
   wanted=heatTimer=tierTime=delivery=job=dispatched=0;dispatchDomain=null;
@@ -567,9 +581,10 @@ function tick(now) {
   }
   const target = car || p;
   if (started && !paused && !bust && !wheel.active) {
-    const oldX=target.x,oldZ=target.z;
+    const oldX=target.x,oldZ=target.z,oldHeading=target.a;
+    if(car)decayImpact(car,dt);
     if(car?.spec.special){
-      transport.update(car,dt,keys,elapsed,moveEntity);
+      transport.update(car,dt,keys,elapsed,moveRoadVehicle);
       if(car.health<=0){endRun("RIDE WRECKED.")}
     }else if (car) {
       const accel =
@@ -594,17 +609,10 @@ function tick(now) {
         1.8 *
         Math.min(Math.abs(car.speed) / 9, 1) *
         Math.sign(car.speed);
-      const hit = moveEntity(
-        car,
-        -Math.sin(car.a) * car.speed * dt,
-        -Math.cos(car.a) * car.speed * dt,
-        1.5,
-      );
-      if (hit && Math.abs(car.speed) > 3) {
-        car.health -= Math.abs(car.speed) * 0.65;
-        car.speed *= -0.25;
-        heat(Math.max(1, wanted));
-        sound(65, 0.15, "sawtooth", 0.07);
+      const impact=moveRoadVehicle(car,dt,1.02,oldHeading);
+      if(impact>4.5){
+        car.health=Math.max(0,car.health-impactDamage(impact));
+        heat(Math.max(1,wanted));sound(65,.15,"sawtooth",.07);
       }
       if (car.health <= 0) {
         endRun("RIDE WRECKED.");
@@ -638,7 +646,7 @@ function tick(now) {
         if(block){blocks.drop(block);car.speed*=.53;car.health=Math.max(0,car.health-4);toast("BARRIER DOWN");break}
       }
     }
-    if(!bust)assault.vehicleStep(car,oldX,oldZ);
+    if(!bust)assault.vehicleStep(car,oldX,oldZ,dt);
     const pursuitRange=transport.pursue(target,wanted,dt);
     if (wanted) {
       assignResponders(target);
@@ -725,22 +733,27 @@ function tick(now) {
         if (car && dist < contact && dist > .001) {
           moveEntity(c,-dx/dist*(contact-dist),-dz/dist*(contact-dist),1.4);
         }
+        const beforeX=c.x,beforeZ=c.z;
         if (
           moveCruiser(c, ((wx - c.x) / wd) * step, ((wz - c.z) / wd) * step,index)
         ) {
           c.a += dt * 4;
           c.speed *= 0.9;
         }
-        if (dist < Math.max(4.1,contact+.18)) {
+        const separation=Math.hypot(target.x-c.x,target.z-c.z);
+        if (separation < (car?contact+.18:4.1)) {
           if (car) {
             if(Math.abs(car.speed)<3){car.health-=dt*8;arresting=true}
-            else if(!c.inContact && Math.abs(c.speed-Math.abs(car.speed))>9)car.health-=3;
+            if(!c.inContact && dist>.001 && dt){
+              const closing=collisionImpulse(car,c,dx/dist,dz/dist,{x:(c.x-beforeX)/dt,z:(c.z-beforeZ)/dt});
+              car.health=Math.max(0,car.health-impactDamage(Math.min(closing,20))*.55);
+            }
             c.inContact=true;
           } else {
             p.health -= dt * 12;
             arresting = true;
           }
-        }else if(dist>contact+2)c.inContact=false;
+        }else if(separation>contact+.5)c.inContact=false;
       }
       if(!bust && dt>0){
         const footResponse=!car&&groundUnits.some(c=>c.muzzle);
@@ -806,8 +819,9 @@ function tick(now) {
   }
   for (const c of cars) {
     if (c.traffic && c !== car && dt) {
-      c.x -= Math.sin(c.a) * c.speed * dt;
-      c.z -= Math.cos(c.a) * c.speed * dt;
+      decayImpact(c,dt);
+      const v=velocity(c);
+      moveEntity(c,v.x*dt,v.z*dt,1);
       if (c.x < -170) c.x = 170;
       if (c.z < -170) c.z = 170;
       if (c.x > 170) c.x = -170;
@@ -816,18 +830,19 @@ function tick(now) {
     if (car && car!==c && started && !bust && dt && Math.abs((car.y??world.getGroundHeight(car.x,car.z))-(c.y??world.getGroundHeight(c.x,c.z)))<2.3) {
       const dx=car.x-c.x, dz=car.z-c.z, dist=Math.hypot(dx,dz);
       const gap=clearance(car,c,dx,dz,dist);
-      if (dist < gap && dist > .001) {
-        if (Math.abs(car.speed)>7) {
-          car.health-=Math.abs(car.speed-c.speed)*.55;
-          car.speed*=-.2;
+      if(dist<gap){
+        const nx=dist>.001?dx/dist:Math.cos(car.a),nz=dist>.001?dz/dist:-Math.sin(car.a);
+        const closing=collisionImpulse(car,c,nx,nz);
+        if(!c.touchingPlayer && closing>4.5){
+          car.health=Math.max(0,car.health-impactDamage(closing)*.75);
           heat(2);toast("TRAFFIC COLLISION · POLICE ALERTED");sound(70,.15,"sawtooth",.07);
         }
-        const overlap=gap-dist;
-        // Moving traffic yields when it reaches the occupied car.
-        if(c.traffic) { c.x-=dx/dist*overlap; c.z-=dz/dist*overlap; }
-        else moveEntity(car,dx/dist*overlap,dz/dist*overlap,1.5);
-      }
-    }
+        c.touchingPlayer=true;
+        const overlap=gap-dist+.015,share=c.traffic ? .5 : 1;
+        moveEntity(car,nx*overlap*share,nz*overlap*share,1);
+        if(c.traffic)moveEntity(c,-nx*overlap*(1-share),-nz*overlap*(1-share),1);
+      }else if(dist>gap+.15)c.touchingPlayer=false;
+    }else if(!car||car===c)c.touchingPlayer=false;
     if(car && car.health<=0 && !bust)endRun("RIDE WRECKED.");
     if(c.spec.special){transport.sync(c,dt,elapsed,c===car);continue}
     c.g.position.set(c.x, world.getGroundHeight(c.x,c.z), c.z);
