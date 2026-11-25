@@ -172,7 +172,7 @@ export function launcherPortrait(renderer,model) {
   stage.add(new T.HemisphereLight('#fff2ce','#d39a82',2.3));
   const light=new T.DirectionalLight('#fff1d5',3);light.position.set(2,4,3);stage.add(light);
   const cam=new T.OrthographicCamera(-.73,.73,.49,-.49,.01,10);
-  cam.position.set(2.3,.65,.76);cam.lookAt(0,.105,-.12);
+  cam.position.set(...(model.userData.portraitView||[2.3,.65,.76]));cam.lookAt(0,.105,-.12);
   const width=768,height=512,stride=width*4;
   const target=new T.WebGLRenderTarget(width,height,{colorSpace:T.SRGBColorSpace});
   const prev=renderer.getRenderTarget(),clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();

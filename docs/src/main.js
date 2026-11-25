@@ -74,9 +74,14 @@ const weapons = createWeapons(world,(unit,kind)=>{
   if(unit.muzzle)reportAssault(unit,kind);
   if(!wanted){heat(1);toast("PATROL STALLED · DISPATCH ALERTED")}
   sound(410,.10,"sine",.06);
-},()=>{
+},explosive=>{
+  if(explosive){sound(125,.25,'sawtooth',.055);sound(205,.18,'triangle',.055,.08);return}
   for(const [i,hz] of [146,128,111].entries())sound(hz,.072,"triangle",.10,i*.07);
-},reportAssault);
+},reportAssault,{blocked,dropBlock:blocks.drop,onWreck(){
+  if(!wanted){heat(1);toast("VEHICLE DESTROYED · DISPATCH ALERTED")}
+},onBoom(){
+  sound(53,.38,'sawtooth',.14);sound(88,.19,'triangle',.17);sound(42,.36,'sine',.12,.09);
+}});
 const wheel=weapons.wheel;
 const garage = $("#starter-car");
 world.vehicleModels.ready.then(() => {
@@ -181,7 +186,7 @@ function clearance(a,b,dx,dz,dist) {
   return dist<.001 ? 3.2 : carRadius(a,nx,nz)+carRadius(b,nx,nz)+.14;
 }
 function canEnter(c){
-  return Math.hypot(c.x-p.x,c.z-p.z)<(c.spec.special?5.8:4)&&(!c.spec.special||Math.abs(c.y-world.getGroundHeight(p.x,p.z))<3);
+  return !c.wrecked && Math.hypot(c.x-p.x,c.z-p.z)<(c.spec.special?5.8:4)&&(!c.spec.special||Math.abs(c.y-world.getGroundHeight(p.x,p.z))<3);
 }
 function interact() {
   if (!started || paused || bust) return;
@@ -278,6 +283,7 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     if(["ArrowLeft","Digit1"].includes(e.code))wheel.select(0);
     if(["ArrowRight","Digit2"].includes(e.code))wheel.select(1);
+    if(["ArrowUp","Digit3"].includes(e.code))wheel.select(2);
     if(e.code==="Escape")wheel.close(false);
     if(e.code==="Enter")wheel.close();
     return;

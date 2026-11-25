@@ -23,7 +23,7 @@ export function createImpactSurfaces(world) {
   const raycaster=new T.Raycaster(),proxy=new T.Mesh(),normalMatrix=new T.Matrix3();
   const end=new T.Vector3(),boxPoint=new T.Vector3(),normal=new T.Vector3(),list=[];
   let generation=0;
-  function cast(ray,range,skip=null){
+  function cast(ray,range,skip=null,sceneryOnly=false){
     generation++;raycaster.ray.copy(ray);raycaster.near=0;raycaster.far=range+.008;
     let result=null;
     function test(mesh,transform,owner,kind,vehicle,civilian=null){
@@ -49,6 +49,7 @@ export function createImpactSurfaces(world) {
       for(let z=cell(Math.min(ray.origin.z,end.z));z<=cell(Math.max(ray.origin.z,end.z));z++)
         for(const e of cells.get(key(x,z))||[])visit(e);
     for(const e of large)visit(e);
+    if(sceneryOnly)return result;
     for(const entry of objects){
       if(entry.vehicle===skip&&skip)continue;
       const root=entry.root;if(!root.visible)continue;
