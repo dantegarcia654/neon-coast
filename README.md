@@ -8,7 +8,7 @@ A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthro
 
 ## Play on your computer
 
-1. [Download Neon Coast V14](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v14.0.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V14](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v14.0.1.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
