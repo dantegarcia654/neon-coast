@@ -64,6 +64,7 @@ export function createImpactSurfaces(world) {
   }
   for(const c of [...world.cars,...world.cops])objects.push({root:c.g,vehicle:c,kind:c.police?'cruiser':'vehicle',radius:c.spec?.special?6.6:4.8});
   for(const b of world.roadblocks||[])objects.push({root:b.root,kind:'barricade',radius:6});
+  for(const p of world.enemies||[])objects.push({root:p.root,kind:'monster',civilian:p,radius:9});
   for(const p of world.pedestrians)objects.push({root:p.root,kind:'pedestrian',civilian:p,radius:2.4});
   for(const u of world.footOfficers)objects.push({root:u.g,kind:'officer',vehicle:u,radius:2.6});
   return {cast,addScenery};

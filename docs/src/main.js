@@ -1,3 +1,4 @@
+import {createFartaculous} from './fartaculous.js';
 import {getawayStart} from './getaway-spawn.js';
 import {sweptContact} from './traffic-contact.js';
 import {createEncounters} from './encounters.js';
@@ -58,6 +59,7 @@ const footOption=$("#foot-patrols");
 let assaultCount=0,lastAssault=null;
 function reportAssault(victim,kind){
   if(!started||bust)return;
+  if(victim.hit){victim.hit(kind);return;}
   if(!victim.police && kind!=='vehicle')victim.startled=.85;
   if(kind==="strike"||kind==="hammer"){
     if(!victim.police)encounters.react(victim,kind);
@@ -81,6 +83,11 @@ const encounters=createEncounters(world,p,{
   hurt(damage,message){p.health=Math.max(0,p.health-damage);sound(75,.12,'triangle',.12);toast(message);if(!p.health)endRun("WASTED.");}
 });
 const assault=createAssaultTracker(world,reportAssault,blocked);
+const monsters=createFartaculous(world,{
+  blocked:(x,z,r)=>blocked(x,z,r)||blocks.hit(x,z,r),notify:toast,
+  hurt(damage,message){p.health=Math.max(0,p.health-damage);toast(message);if(!p.health)endRun("WASTED.")},
+  sound(){sound(48,.45,'sawtooth',.055);sound(67,.3,'triangle',.07,.12)}
+});
 const followCamera = createFollowCamera(camera, [...buildings,...world.cameraObstacles], world.getGroundHeight, [...cars, ...cops]);
 const cockpit = createCockpit(scene,renderer,camera);
 const weapons = createWeapons(world,(unit,kind)=>{
@@ -495,6 +502,7 @@ function endRun(title){
 }
 function resetSession(toMenu){
   ++streetSession;streetLife?.stop();
+  monsters.stop();
   bust=0;paused=false;started=!toMenu;teachWeapons=waitingCruiser=false;getawayTime=0;clearInput();
   if(toMenu)++backgroundVersion;
   footPatrol.reset();assault.reset();encounters.reset();assaultCount=0;lastAssault=null;
@@ -516,7 +524,7 @@ function resetSession(toMenu){
   $("#pause").hidden=true;$("#pause-title").textContent="TAKE A BREATH.";$("#resume").textContent="BACK TO THE CITY";
   $("#intro").style.display=toMenu?"":"none";document.body.classList.toggle("menu-open",toMenu);
   if(toMenu){prepareSelection();$("#start").focus();toastTime=0;$("#toast").style.opacity=0}
-  else {startStreetLife();toast("BACK ON FOOT · ESC FOR A NEW SESSION");canvas.focus({preventScroll:true})}
+  else {monsters.start(p,$("#monster-encounter").checked);startStreetLife();toast("BACK ON FOOT · ESC FOR A NEW SESSION");canvas.focus({preventScroll:true})}
 }
 $("#start").onclick = () => {
   if(!starterReady || started || !world.characters.getState().ready)return;
@@ -555,6 +563,7 @@ $("#start").onclick = () => {
     }
     heat(1);toast("ONE STAR · DISPATCH ALERTED");
   }
+  monsters.start(car||p,$("#monster-encounter").checked);
   performance.mark("neon-session-start");
   startStreetLife();
   streamRoster();
@@ -719,6 +728,7 @@ function tick(now) {
       }
     }
     const oldX=target.x,oldZ=target.z,oldHeading=target.a;
+    monsters.update(dt,target,Boolean(car));
     encounters.step(dt,elapsed,car,!!keys.Space&&!wheel.armed);
     if(car)decayImpact(car,dt);
     if(car?.spec.special){
@@ -1066,6 +1076,7 @@ addEventListener("resize", () => {
 });
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
+  monsters:monsters.state(),
   started,playMode,starterReady,streetLife:streetLife?.state()??null,
   weapons:weapons.state(),encounters:encounters.state(),
   paused,

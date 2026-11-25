@@ -164,15 +164,15 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     let target=null;
     if(autoAim){
       let nearest=limit;
-      for(const n of [...world.pedestrians,...world.footOfficers]){
+      for(const n of [...world.pedestrians,...world.footOfficers,...(world.enemies||[])]){
         const root=n.root||n.g;
         if(!root.visible||n.behavior==='defeated'||n.behavior==='exiting')continue;
         const dx=root.position.x-actor.x,dz=root.position.z-actor.z,d=Math.hypot(dx,dz);
-        if(d>=nearest||-dx*Math.sin(actor.a)-dz*Math.cos(actor.a)<-.12*d)continue;
+        if(d>=limit+(n.hit?n.radius:0)||-dx*Math.sin(actor.a)-dz*Math.cos(actor.a)<-.12*d)continue;
         const torso=root.position.clone();torso.y+=1.2;
-        delta.subVectors(torso,pos);const reach=delta.length();if(reach>limit+.04)continue;
+        delta.subVectors(torso,pos);const reach=delta.length();if(!n.hit&&reach>limit+.04)continue;
         const h=surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.2);
-        if(h && (h.civilian===n||h.vehicle===n)){target=h;nearest=d;}
+        if(h && h.distance<nearest && (h.civilian===n||h.vehicle===n)){target=h;nearest=h.distance;}
       }
     }else{
       cast.setFromCamera(pointer,camera);
@@ -276,7 +276,7 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
       aimRay.set(s.m.position,delta.normalize());
       const hit=surfaces.cast(aimRay,length+.012,s.skip);
       if(hit||t===1){
-        if(hit&&s.explosive){if(live)blasts.detonate(hit,s.skip,delta)}
+        if(hit&&s.explosive){if(live){if(hit.civilian?.hit)hit.civilian.hit("rocket");blasts.detonate(hit,s.skip,delta)}}
         else if(hit){sauce.deposit(hit);if(hit.vehicle?.police)tag(hit.vehicle);else if(hit.civilian&&live)onAssault(hit.civilian,"rocket")}
         scene.remove(s.m);shots.splice(i,1);
       }else{s.m.position.copy(next);s.m.quaternion.setFromUnitVectors(forward,delta);if(s.explosive)spinProps(s.m,s.age);else s.m.rotateZ(s.age*5)}

@@ -60,3 +60,7 @@ node server.mjs
 Edit the JavaScript in `docs/src/`, then refresh your browser. The start screen and HUD are in `docs/index.html` and `docs/style.css`. Models and textures live in `docs/assets/`. The local server serves `docs/` directly. GitHub Pages publishes that same folder from `main`. Edits go live after GitHub finishes the Pages deployment.
 
 Neon Coast is an independent, AI-assisted prototype. See the [asset credits](CREDITS.md) for authorship and third-party licenses.
+
+### Fartaculous encounter (feature branch)
+
+Leave **Fartaculous monster chase** checked on the start screen to meet the giant green-and-yellow, double-butt monster. He chases you, turns around to wind up, then releases two gas clouds and summons Diarrhea Pookie. Sprint clear of the clouds or get into a vehicle for protection. Existing melee and launcher hits can defeat both monsters. Turn the checkbox off for an ordinary session.
