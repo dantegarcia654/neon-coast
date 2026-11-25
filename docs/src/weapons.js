@@ -146,19 +146,39 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
   }
   let strikeTime=0;
   const strikePoint=new T.Vector3();
-  function strike(actor){
-    if(cooldown>0||wheel.active)return;
-    cast.setFromCamera(pointer,camera);
-    const hit=surfaces.cast(cast.ray,100);
-    if(!hit?.civilian && hit?.kind!=='officer')return;
-    pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.1,actor.z);
-    if(pos.distanceTo(hit.point)>1.9)return;
-    dir.subVectors(hit.point,pos);const reach=dir.length();
-    const contact=surfaces.cast(aimRay.set(pos,dir.normalize()),reach+.08);
-    if(!contact || (contact.civilian!==hit.civilian || contact.vehicle!==hit.vehicle))return;
-    cooldown=.65;strikeTime=.24;strikePoint.copy(hit.point);
-    actor.a=Math.atan2(actor.x-hit.point.x,actor.z-hit.point.z);
-    if(hit.civilian)onAssault(hit.civilian,'strike');else tag(hit.vehicle,'strike');
+  function strike(actor,autoAim=false){
+    if(cooldown>0||wheel.active||wheel.armed)return;
+    pos.set(actor.x,getGroundHeight(actor.x,actor.z)+1.18,actor.z);
+    let target=null;
+    if(autoAim){
+      let nearest=2.04;
+      for(const n of [...world.pedestrians,...world.footOfficers]){
+        const root=n.root||n.g;
+        if(!root.visible||n.behavior==='defeated'||n.behavior==='exiting')continue;
+        const dx=root.position.x-actor.x,dz=root.position.z-actor.z,d=Math.hypot(dx,dz);
+        if(d>=nearest||-dx*Math.sin(actor.a)-dz*Math.cos(actor.a)<-.12*d)continue;
+        const torso=root.position.clone();torso.y+=1.2;
+        delta.subVectors(torso,pos);const reach=delta.length();if(reach>2.08)continue;
+        const h=surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.2);
+        if(h && (h.civilian===n||h.vehicle===n)){target=h;nearest=d;}
+      }
+    }else{
+      cast.setFromCamera(pointer,camera);
+      const h=surfaces.cast(cast.ray,100);
+      if(h?.civilian||h?.kind==='officer'){
+        delta.subVectors(h.point,pos);const reach=delta.length();
+        if(reach<=2.04){
+          const contact=surfaces.cast(aimRay.set(pos,delta.normalize()),reach+.08);
+          if(contact && contact.civilian===h.civilian && contact.vehicle===h.vehicle)target=h;
+        }
+      }
+    }
+    cooldown=.46;strikeTime=.28;
+    strikePoint.set(actor.x-Math.sin(actor.a)*.95,pos.y+.19,actor.z-Math.cos(actor.a)*.95);
+    if(!target)return;
+    strikePoint.copy(target.point);actor.a=Math.atan2(actor.x-target.point.x,actor.z-target.point.z);
+    if(target.civilian && target.civilian.behavior!=='defeated')onAssault(target.civilian,'strike');
+    else if(target.kind==='officer')tag(target.vehicle,'strike');
   }
   function fire(actor,car,interior){
     if(!wheel.armed&&!car){strike(actor);return}
@@ -180,12 +200,15 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     scene.add(m);shots.push({m,explosive,origin,end:dest,age:0,duration,arc:explosive?0:Math.min(1.6,distance*.047),skip:car,tracked,localHit});
     shotsFired++;cooldown=explosive?1.15:.33;kick=1;onLaunch(explosive);
   }
-  function update(dt,actor,car,interior,live){
+  function update(dt,actor,car,interior,live,handsBusy=false){
     loadout(car);propTime+=dt;if(wheel.equipped===2)spinProps(model,propTime);cooldown=Math.max(0,cooldown-dt);kick=Math.max(0,kick-dt*6);
-    if(live)place(actor,car,interior);else model.visible=mount.visible=false;
+    if(live&&!handsBusy)place(actor,car,interior);else model.visible=mount.visible=false;
     if(strikeTime>0){
       strikeTime=Math.max(0,strikeTime-dt);
-      if(live&&!car&&!wheel.armed)world.characters.reachRight(strikePoint);
+      if(live&&!handsBusy&&!car&&!wheel.armed && world.characters.shoulderPosition(pos)){
+        const progress=1-strikeTime/.28;
+        world.characters.reachRight(point.lerpVectors(pos,strikePoint,.38+.62*Math.sin(Math.PI*progress)));
+      }
     }
     for(let i=shots.length-1;i>=0;i--){
       const s=shots[i];s.age+=dt;const t=Math.min(1,s.age/s.duration);
@@ -217,5 +240,5 @@ export function createWeapons(world,onTag,onLaunch,onAssault,blastOptions) {
     shots.length=tags.length=shotsFired=hits=0;cooldown=kick=strikeTime=0;wheel.reset();
     for(const c of cops)c.snackTime=0;
   }
-  return {policeRockets,wheel,setPointer,fire,update,reset,state:()=>({name:wheel.armed?weaponName:null,equipped:wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
+  return {policeRockets,wheel,setPointer,fire,punch:actor=>strike(actor,true),update,reset,state:()=>({name:wheel.armed?weaponName:null,equipped:wheel.armed?(weaponName==='The Meat Rocket'?'sahur':weaponName):'unarmed',wheelOpen:wheel.active,shotsFired,hits,inFlight:shots.length,explosions:blasts.state(),sauce:sauce.state()})};
 }

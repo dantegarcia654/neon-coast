@@ -1,4 +1,6 @@
-import {velocity,decayImpact,hullBlocked,moveVehicle,collisionImpulse,impactDamage} from './crash.js';
+import {sweptContact} from './traffic-contact.js';
+import {createEncounters} from './encounters.js';
+import {decayImpact,hullBlocked,moveVehicle,collisionImpulse,impactDamage} from './crash.js';
 import {createFootPatrol} from './foot-patrol.js';
 import {createAssaultTracker} from './assault.js';
 import {reinforcementSite} from './backup.js';
@@ -57,6 +59,7 @@ let assaultCount=0,lastAssault=null;
 function reportAssault(victim,kind){
   if(!started||bust)return;
   if(!victim.police && kind!=='vehicle')victim.startled=.85;
+  if(kind==="strike"){encounters.react(victim,kind);sound(94,.10,"triangle",.09)}
   assaultCount++;lastAssault=kind;
   const actor=car||p,lead=streetCops[0];
   if(!wanted && !lead.snackTime && Math.hypot(actor.x-lead.x,actor.z-lead.z)>48){
@@ -65,8 +68,14 @@ function reportAssault(victim,kind){
   }
   Object.assign(airWatch.report,{x:actor.x,z:actor.z});
   heat(wanted+1);
-  toast("ASSAULT REPORTED · "+wanted+(wanted===1?" STAR":" STARS"));
+  toast((victim.behavior==="defeated"?"OPPONENT DOWN":"ASSAULT REPORTED")+" · "+wanted+(wanted===1?" STAR":" STARS"));
 }
+const encounters=createEncounters(world,p,{
+  wall:(x,z,r)=>blocked(x,z,r)||blocks.hit(x,z,r),move:moveEntity,notify:toast,
+  horn(){sound(349,.28,'sawtooth',.047);sound(440,.26,'triangle',.08);toast("CAR HORN");},
+  thump(){sound(130,.09,'triangle',.07);},
+  hurt(damage,message){p.health=Math.max(0,p.health-damage);sound(75,.12,'triangle',.12);toast(message);if(!p.health)endRun("WASTED.");}
+});
 const assault=createAssaultTracker(world,reportAssault,blocked);
 const followCamera = createFollowCamera(camera, [...buildings,...world.cameraObstacles], world.getGroundHeight, [...cars, ...cops]);
 const cockpit = createCockpit(scene,renderer,camera);
@@ -161,10 +170,11 @@ function blocked(x, z, r = 0.7) {
   );
 }
 function moveEntity(e, dx, dz, r) {
+  const solid=e===p?encounters.bodyBlocked:blocked;
   let hit = false;
-  if (!blocked(e.x + dx, e.z, r) && !(e===p && blocks.hit(e.x+dx,e.z,r))) e.x += dx;
+  if (!solid(e.x + dx, e.z, r)) e.x += dx;
   else hit = true;
-  if (!blocked(e.x, e.z + dz, r) && !(e===p && blocks.hit(e.x,e.z+dz,r))) e.z += dz;
+  if (!solid(e.x, e.z + dz, r)) e.z += dz;
   else hit = true;
   return hit;
 }
@@ -189,7 +199,7 @@ function canEnter(c){
   return !c.wrecked && Math.hypot(c.x-p.x,c.z-p.z)<(c.spec.special?5.8:4)&&(!c.spec.special||Math.abs(c.y-world.getGroundHeight(p.x,p.z))<3);
 }
 function interact() {
-  if (!started || paused || bust) return;
+  if (!started || paused || bust || encounters.busy) return;
   if (car) {
     if (Math.abs(car.speed) > 5) {
       toast("SLOW DOWN TO GET OUT");
@@ -201,7 +211,7 @@ function interact() {
       if(car.x<211||car.x>247||Math.abs(car.z)>8){toast("RETURN TO EAST PIER TO DISEMBARK");return}
       x=THREE.MathUtils.clamp(car.x,211,245);z=Math.sign(car.z)*1.3;
     }
-    if (blocked(x, z)) {
+    if (encounters.bodyBlocked(x,z,.38,car)) {
       toast("DOOR BLOCKED — FIND SOME SPACE");
       return;
     }
@@ -221,6 +231,12 @@ function interact() {
         Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z),
     )[0];
   if (c) {
+    if(encounters.seated(c)){
+      if(encounters.pullDriver(c) && c.driver.behavior==='exiting'){
+        reportAssault(c.driver,'carjacking');toast("PULLING DRIVER OUT");
+      }
+      return;
+    }
     car = c;
     c.traffic = false;
     person.visible = false;
@@ -247,6 +263,7 @@ function interact() {
   }
 }
 function recover() {
+  if(encounters.busy)return;
   if (wanted) {
     toast("LOSE THE POLICE BEFORE RECOVERING");
     return;
@@ -300,6 +317,7 @@ addEventListener("keydown", (e) => {
     toast(followCamera.toggleInterior() ? "DRIVER SEAT" : "EXTERIOR VIEW");
   }
   if (e.code === "KeyV" && started && !paused) toast(followCamera.cycle().toUpperCase() + " CAMERA");
+  if (e.code === "KeyJ" && !car && !wheel.armed && !encounters.busy && !keys.Space)weapons.punch(p);
   if (e.code === "KeyE") interact();
   if (e.code === "KeyR") recover();
   if (e.code === "Escape" && started) {
@@ -369,6 +387,10 @@ function moveCruiser(unit,dx,dz,index){
     x=lead.x+nx*gap;z=lead.z+nz*gap;
     if(blocked(x,z,1.4))return true;
   }
+  if(!car){
+    const hit=sweptContact(unit,x-unit.x,z-unit.z,p.x,p.z);
+    if(hit!==null){x=unit.x+(x-unit.x)*hit;z=unit.z+(z-unit.z)*hit;}
+  }
   return moveEntity(unit,x-unit.x,z-unit.z,1.4);
 }
 function policeShotEvent(event,damage){
@@ -389,7 +411,7 @@ function endRun(title){
 }
 function resetSession(toMenu){
   bust=0;paused=false;started=!toMenu;clearInput();
-  footPatrol.reset();assault.reset();assaultCount=0;lastAssault=null;
+  footPatrol.reset();assault.reset();encounters.reset();assaultCount=0;lastAssault=null;
   for(const npc of world.pedestrians){
     npc.startled=npc.walkOffsetX=npc.walkOffsetZ=0;npc.impact=null;
     npc.root.rotation.set(0,0,0);
@@ -459,7 +481,7 @@ canvas.addEventListener("pointermove", (event) => {
 canvas.addEventListener("pointerup",event=>{
   if(pointerId!==event.pointerId)return;
   pointerId=null;
-  if(started && !paused && !bust && !wheel.active && !dragged && Math.hypot(event.clientX-downX,event.clientY-downY)<=4){
+  if(started && !paused && !bust && !wheel.active && !encounters.busy && !(keys.Space&&!car&&!wheel.armed) && !dragged && Math.hypot(event.clientX-downX,event.clientY-downY)<=4){
     weapons.setPointer(event.clientX,event.clientY);weapons.fire(car||p,car,followCamera.interior);
   }
 });
@@ -588,6 +610,7 @@ function tick(now) {
   const target = car || p;
   if (started && !paused && !bust && !wheel.active) {
     const oldX=target.x,oldZ=target.z,oldHeading=target.a;
+    encounters.step(dt,elapsed,car,!!keys.Space&&!wheel.armed);
     if(car)decayImpact(car,dt);
     if(car?.spec.special){
       transport.update(car,dt,keys,elapsed,moveRoadVehicle);
@@ -623,7 +646,7 @@ function tick(now) {
       if (car.health <= 0) {
         endRun("RIDE WRECKED.");
       }
-    } else {
+    } else if(!encounters.busy) {
       let x =
           (keys.KeyD || keys.ArrowRight ? 1 : 0) -
           (keys.KeyA || keys.ArrowLeft ? 1 : 0),
@@ -632,7 +655,7 @@ function tick(now) {
           (keys.KeyW || keys.ArrowUp ? 1 : 0);
       if (x || z) {
         const l = Math.hypot(x, z),
-          s = keys.ShiftLeft || keys.ShiftRight ? 8 : 4.5;
+          s = encounters.guarding ? 2.2 : keys.ShiftLeft || keys.ShiftRight ? 8 : 4.5;
         const heading = followCamera.heading;
         const dx = x * Math.cos(heading) + z * Math.sin(heading);
         const dz = z * Math.cos(heading) - x * Math.sin(heading);
@@ -734,7 +757,7 @@ function tick(now) {
         c.a += THREE.MathUtils.clamp(diff, -2.2 * dt, 2.2 * dt);
         c.speed = THREE.MathUtils.lerp(c.speed, car ? response.roadSpeed : response.footSpeed, dt);
         const wd = Math.hypot(wx - c.x, wz - c.z) || 1,
-          contact = car ? clearance(c,car,dx,dz,dist) : 1.5,
+          contact = car ? clearance(c,car,dx,dz,dist) : carRadius(c,dx/(dist||1),dz/(dist||1))+.42,
           step = Math.min(c.speed * dt, wd, Math.max(0,dist-contact));
         if (car && dist < contact && dist > .001) {
           moveEntity(c,-dx/dist*(contact-dist),-dz/dist*(contact-dist),1.4);
@@ -824,10 +847,10 @@ function tick(now) {
     }
   }
   for (const c of cars) {
-    if (c.traffic && c !== car && dt) {
+    encounters.syncSeat(c,target);
+    if (c.traffic && c !== car && dt && started && !bust) {
       decayImpact(c,dt);
-      const v=velocity(c);
-      moveEntity(c,v.x*dt,v.z*dt,1);
+      encounters.updateTraffic(c,dt,!car);
       if (c.x < -170) c.x = 170;
       if (c.z < -170) c.z = 170;
       if (c.x > 170) c.x = -170;
@@ -885,12 +908,12 @@ function tick(now) {
   $("#progress i").style.width =
     (job === 1 ? 25 + heatTimer * 4 : job === 2 ? 75 : job === 3 ? 100 : 0) +
     "%";
-  const near = !car && cars.some(canEnter);
+  const near=!car&&cars.filter(canEnter).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
   $("#prompt").style.display =
-    started && !paused && (near || car) ? "block" : "none";
+    started && !paused && !bust && !encounters.busy && (near || car) ? "block" : "none";
   $("#prompt").innerHTML = car
     ? "<kbd>E</kbd> EXIT VEHICLE"
-    : "<kbd>E</kbd> TAKE VEHICLE";
+    : near && encounters.seated(near) ? "<kbd>E</kbd> PULL DRIVER OUT" : "<kbd>E</kbd> TAKE VEHICLE";
   if (toastTime > 0) {
     toastTime -= dt;
     if (toastTime <= 0) $("#toast").style.opacity = 0;
@@ -912,9 +935,10 @@ function tick(now) {
   } else cockpit.leave();
   $("#flight-controls").hidden=!started||!transport.flight(car);
   if(transport.flight(car))$("#flight-alt").textContent=Math.round(Math.max(0,car.y-transport.floor(car.x,car.z)))+" m";
-  weapons.update(dt,car||p,car,Boolean(car&&followCamera.interior),started && !bust);
+  weapons.update(dt,car||p,car,Boolean(car&&followCamera.interior),started && !bust,encounters.busy);
   $("#weapon-hint").hidden=!started||paused||wheel.active||!wheel.armed||Boolean(bust);
   canvas.classList.toggle("serving",started&&wheel.armed&&!paused&&!wheel.active);
+  if(started&&!car)encounters.pose();
   world.render();
 }
 requestAnimationFrame(tick);
@@ -927,7 +951,7 @@ addEventListener("resize", () => {
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
   started,
-  weapons:weapons.state(),
+  weapons:weapons.state(),encounters:encounters.state(),
   paused,
   mode: car ? "driving" : "on foot",
   position: { x: (car || p).x, z: (car || p).z },

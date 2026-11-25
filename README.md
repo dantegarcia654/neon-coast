@@ -8,7 +8,7 @@ A single-player, 3D open-city game for desktop browsers. Play as Jean Philanthro
 
 ## Play on your computer
 
-1. [Download Neon Coast V15](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v15.0.0.zip) and **extract the entire ZIP**.
+1. [Download Neon Coast V16](https://github.com/dantegarcia654/neon-coast/archive/refs/tags/v16.0.0.zip) and **extract the entire ZIP**.
 2. With [Node.js](https://nodejs.org/) installed, open the extracted folder. On Windows, double-click **START-WINDOWS.cmd**. On macOS, double-click **START.command**. On Linux, or from a terminal on any platform, run `node server.mjs`.
 3. Open **http://127.0.0.1:5173/** in a desktop browser with WebGL 2 enabled. Keep the terminal open while playing. Press Ctrl+C in that terminal to stop.
 
@@ -24,10 +24,11 @@ Choose your character, vehicle and starting location. Downtown starts you on foo
 | --- | --- |
 | WASD or arrow keys | Walk, steer, accelerate or reverse |
 | Shift / Space | Sprint on foot / use the handbrake |
-| E | Enter a nearby vehicle or exit at low speed |
+| E | Pull a driver out, enter an empty vehicle, or exit at low speed |
 | Drag / C | Look around / look back |
 | F / V | Toggle the driver’s seat / cycle camera views |
 | Hold Tab, select, release | Equip a launcher or switch to empty hands |
+| J / hold Space (unarmed, on foot) | Punch a nearby opponent / guard against punches |
 | Left click | Fire when armed, or strike a nearby person when unarmed |
 | Q / Z | Climb / descend in aircraft |
 | R / Esc | Recover when clear of police / pause or start a new session |
@@ -35,6 +36,8 @@ Choose your character, vehicle and starting location. Downtown starts you on foo
 Assaulting a civilian adds a wanted star. Separate meters track character and vehicle health. At three stars police set up roadblocks and fire Meat Rockets. At four, a search helicopter joins. At five, up to seven cruisers respond. Break sight with the ground units and helicopter for twelve seconds to clear a five-star chase.
 
 Hold Tab and press **3** to select **Bombardiro Crocodilo**. Release Tab and click a target. The winged crocodile flies straight and detonates on contact. Nearby pedestrians fall, a direct hit wrecks a civilian vehicle, and police vehicles are disabled for at least eight seconds. The launcher also works from a vehicle. The model is an original interpretation of the [crocodile-plane meme](https://knowyourmeme.com/memes/bombardiro-crocodilo-italian-brainrot).
+
+Traffic drivers have individual temperaments. Cautious drivers brake and honk when you stand in their lane. Aggressive drivers can knock you down. Press **E** near occupied traffic to pull the driver out. You stay on foot while the driver flees or confronts you. Press **E** again to take the car. With empty hands, click an opponent or press **J** to punch, or hold **Space** to block.
 
 A light vehicle hit makes a pedestrian stumble. A faster hit knocks them off balance, carries them away from the bumper, and gives them time to get back on their feet. Cars slide along walls on a glancing impact. A square hit transfers more momentum and costs more vehicle health.
 
