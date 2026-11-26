@@ -395,3 +395,8 @@ header,#stats,#mission,#radar,#prompt,#toast,footer{pointer-events:none}
 }
 
 #stunt-hud{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);padding:12px 20px;background:#143d45ed;border:1px solid #89f0df;color:#e3fff6;font:700 12px/1.5 sans-serif;letter-spacing:.7px;max-width:88vw;text-align:center;pointer-events:none} #stunt-hud[hidden]{display:none}
+
+#rearview{position:fixed;top:88px;left:50%;transform:translateX(-50%);width:148px;height:148px;box-sizing:border-box;border:6px solid #14292f;border-radius:50%;box-shadow:0 0 0 1px #b4d3ce,0 5px 18px #0007;pointer-events:none;background:transparent;z-index:2}
+#rearview[hidden]{display:none}
+#rearview span{position:absolute;bottom:-25px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:9px;background:#14292fe8;color:#e5f2ec;font:700 9px/1.2 sans-serif;letter-spacing:1.4px}
+@media(max-width:700px){#rearview{width:108px;height:108px;top:86px;left:auto;right:18px;transform:none}}

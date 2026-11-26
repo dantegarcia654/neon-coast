@@ -72,3 +72,7 @@ Choose **Free Roam → Start location → Ocean stunt road**, then enter Free Ro
 Hold **W** to accelerate, **S / Space** to brake, and **A / D** to move across the magnetic road. Before the fork, use **1** for Tidal Slalom (weaving bends and boost strips), **2** for Sky Loop (a full vertical loop), or **3** for Corkscrew Run (a twisting barrel-roll road). Magnetic grip keeps the vehicle attached through inverted sections. All three branches merge at a desert island with cacti, colorful houses, a plaza, festival flags, and a stepped sun tower: **Cactus Crossing**.
 
 At the island, normal driving resumes. Slow down and press **E** to explore on foot. Get back into a car and press **R** to return to the fork and try another route. The route HUD tracks which branches you've completed. Exotic aircraft and boats use their existing launch locations; the stunt start requires a road car.
+
+### Circular rearview mirror
+
+While driving a road car, a live circular rearview mirror sits at the top of the screen. It shows the road, pursuers, and other world objects behind your car, with reflected left/right orientation. It works through turns and stunt loops, updates at 12 frames per second, and hides on foot, in menus, and while paused. The existing C look-back control and cockpit mirror remain available.

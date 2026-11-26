@@ -1,3 +1,4 @@
+import {createRearview} from './rearview.js';
 import {installOceanStunts} from './ocean-stunts.js';
 import {createFartaculous} from './fartaculous.js';
 import {getawayStart} from './getaway-spawn.js';
@@ -92,6 +93,7 @@ const monsters=createFartaculous(world,{
 });
 const followCamera = createFollowCamera(camera, [...buildings,...world.cameraObstacles], world.getGroundHeight, [...cars, ...cops]);
 const cockpit = createCockpit(scene,renderer,camera);
+const rearview=createRearview(world,$("#rearview"));
 const weapons = createWeapons(world,(unit,kind)=>{
   if(unit.muzzle)reportAssault(unit,kind);
   if(!wanted){heat(1);toast("PATROL STALLED · DISPATCH ALERTED")}
@@ -1088,6 +1090,7 @@ function tick(now) {
   if(started&&!car)encounters.pose();
   if(ocean.active){cockpit.leave();ocean.sync();ocean.camera(dt)}
   world.render();
+  rearview.draw(car,elapsed,started&&!paused&&!bust&&!wheel.active);
 }
 requestAnimationFrame(tick);
 addEventListener("resize", () => {
@@ -1098,6 +1101,7 @@ addEventListener("resize", () => {
 });
 // Read-only state supports repeatable quality checks without altering play.
 window.gameState = () => ({
+  rearview:rearview.state(),
   ocean:ocean.state(),
   monsters:monsters.state(),
   started,playMode,starterReady,streetLife:streetLife?.state()??null,
